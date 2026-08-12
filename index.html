@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>DOGGO BATTLES — OPERATION B.A.R.K.</title>
+<style>
+  :root{ --ink:#0a0810; --hot:#ff2d3d; --gold:#ffd166; --cool:#4cc9f0; }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%; background:var(--ink); overflow:hidden;
+    font:16px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-user-select:none; user-select:none; cursor:pointer}
+
+  /* everything lives in here so ONE transform shakes the whole picture */
+  #shake{position:fixed; inset:-8%; display:grid; place-items:center; will-change:transform}
+  #fx{position:absolute; inset:0; width:100%; height:100%}
+
+  .card{position:absolute; text-align:center; opacity:0; pointer-events:none;
+    letter-spacing:.02em; line-height:1.08; width:min(84vw, 1000px)}
+
+  #c1{font-size:clamp(15px,2.6vw,34px); font-weight:800; letter-spacing:.38em;
+      color:#cbbff5; text-transform:uppercase}
+  #c2{font-size:clamp(24px,min(5.4vw,9vh),58px); font-weight:900; color:#fff; text-transform:uppercase;
+      text-shadow:0 0 40px rgba(120,90,255,.5)}
+  #c2 em{font-style:normal; color:var(--gold)}
+
+  /* sized in vmin so a short window can't push the subtitle into the menu */
+  #logo{position:absolute; text-align:center; opacity:0; pointer-events:none; width:100%;
+        transform:translateY(-5vh)}
+  #big{font-size:clamp(38px,min(11vw,17vh),140px); font-weight:900; letter-spacing:-.03em;
+       text-transform:uppercase; color:#fff; line-height:.88;
+       text-shadow:0 0 60px rgba(255,45,61,.55)}
+  #sub{margin-top:.3em; font-size:clamp(14px,min(3.6vw,5.5vh),42px); font-weight:900;
+       letter-spacing:.16em; text-transform:uppercase; color:var(--hot)}
+  #dog{display:block; margin:0 auto .08em; height:clamp(50px,min(12vw,17vh),160px);
+       image-rendering:auto; filter:drop-shadow(0 10px 30px rgba(0,0,0,.6))}
+
+  #menu{position:absolute; bottom:5vh; display:flex; gap:14px; flex-wrap:wrap;
+    justify-content:center; opacity:0; transition:opacity .6s; pointer-events:none}
+  #menu.on{opacity:1; pointer-events:auto}
+  #menu a{display:block; padding:14px 26px; border-radius:14px; text-decoration:none;
+    font-weight:900; letter-spacing:.14em; text-transform:uppercase; font-size:14px;
+    background:#191330; color:#fff; border:2px solid #35295e; transition:.15s}
+  #menu a:hover{border-color:var(--gold); color:var(--gold); transform:translateY(-2px)}
+  #menu a.hot{background:var(--hot); border-color:var(--hot)}
+  #menu a.hot:hover{background:#ff4757; border-color:#fff; color:#fff}
+
+  #tap{position:fixed; inset:0; display:grid; place-items:center; z-index:9;
+    background:var(--ink); text-align:center}
+  #tap h1{font-size:clamp(30px,9vw,90px); font-weight:900; letter-spacing:.06em;
+    color:#fff; text-transform:uppercase; animation:thump 1.15s infinite ease-in-out}
+  #tap p{margin-top:16px; font-size:13px; letter-spacing:.3em; color:#7a6fa8;
+    text-transform:uppercase}
+  @keyframes thump{0%,100%{transform:scale(1); opacity:.85} 50%{transform:scale(1.07); opacity:1}}
+  #tap.gone{opacity:0; pointer-events:none; transition:opacity .25s}
+
+  #skip{position:fixed; right:16px; bottom:14px; z-index:8; font-size:11px;
+    transition:opacity .4s;
+    letter-spacing:.22em; color:#5c5480; text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div id="shake">
+  <canvas id="fx"></canvas>
+
+  <div class="card" id="c1">Xanboo78o presents</div>
+  <div class="card" id="c2">One of the <em>best</em> doggo games ever</div>
+
+  <div id="logo">
+    <!-- PLACEHOLDER ART — swap #dog for Adam's title art when it exists -->
+    <img id="dog" src="doggos/BARKmc.png" alt="">
+    <div id="big">Doggo<br>Battles</div>
+    <div id="sub">Operation B.A.R.K.</div>
+  </div>
+
+  <div id="menu">
+    <a class="hot" href="bunker.html">▶ Chapter 1 — The Bunker</a>
+    <a href="sandbox.html">Kennel Sandbox</a>
+  </div>
+</div>
+
+<div id="tap"><div><h1>Tap in</h1><p>click anywhere · sound on</p></div></div>
+<div id="skip">press S to skip</div>
+
+<script>
+(() => {
+'use strict';
+
+// ════════════════════════════════════════════════════════════════════════
+// THE INTRO
+// Everything — cards, shake, flashes — is driven off the AUDIO clock, not
+// off frame time. A dropped frame must never slide the picture off the beat.
+//
+// 150 BPM. One 16th step = 0.1s exactly, so step numbers below double as
+// tenths of a second from the downbeat.
+// ════════════════════════════════════════════════════════════════════════
+const BPM = 150, STEP = 15 / BPM / 4;      // 0.1s
+
+const BUILD  = 32;    //  3.2s  — the boast card, kick and snare come in
+const PRE    = 64;    //  6.4s  — everything strips out, riser peaks
+const DROP   = 80;    //  8.0s  — TAP IN. the logo slams.
+const SUBTTL = 96;    //  9.6s  — "OPERATION B.A.R.K." lands under it
+const MENU   = 128;   // 12.8s  — settle into the groove, menu appears
+const LOOP   = 32;    // the groove repeats every 2 bars after the drop
+
+let actx, bus, t0 = 0, started = false, ended = false;
+// The PICTURE runs on the wall clock and the MUSIC runs on the audio clock.
+// They're both real-time so they stay locked — but if a browser refuses to
+// start audio, the title sequence still plays instead of sitting on black.
+let wall0 = 0, held = null;                  // `held` freezes the clock for inspection
+const nowSec = () => held != null ? held : (performance.now() - wall0) / 1000;
+
+// ── the impacts that shake the screen. {step, magnitude}
+const impacts = [];
+const hit = (step, mag) => impacts.push({ t: step*STEP, mag });
+
+// ───────────────────────────────────────────── synth voices
+let noiseBuf;
+function noise(){
+  const s = actx.createBufferSource(); s.buffer = noiseBuf; return s;
+}
+// soft-clip curve — this is what makes the drop sound like it's tearing
+function drive(amount){
+  const ws = actx.createWaveShaper(), n = 1024, c = new Float32Array(n);
+  for(let i=0;i<n;i++){ const x = i/n*2-1; c[i] = Math.tanh(x*amount); }
+  ws.curve = c; ws.oversample = '4x'; return ws;
+}
+
+function kick(t, g0){
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(165, t);
+  o.frequency.exponentialRampToValueAtTime(41, t + 0.085);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(g0, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.40);
+  o.connect(g).connect(bus); o.start(t); o.stop(t + 0.45);
+  const cl = noise(), cg = actx.createGain(), hp = actx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 1400;
+  cg.gain.setValueAtTime(g0 * 0.5, t);
+  cg.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+  cl.connect(hp).connect(cg).connect(bus); cl.start(t); cl.stop(t + 0.05);
+}
+
+function snare(t, g0){
+  const s = noise(), bp = actx.createBiquadFilter(), g = actx.createGain();
+  bp.type = 'bandpass'; bp.frequency.value = 1900; bp.Q.value = 0.7;
+  g.gain.setValueAtTime(g0, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+  s.connect(bp).connect(g).connect(bus); s.start(t); s.stop(t + 0.2);
+}
+
+function hat(t, g0){
+  const s = noise(), hp = actx.createBiquadFilter(), g = actx.createGain();
+  hp.type = 'highpass'; hp.frequency.value = 7000;
+  g.gain.setValueAtTime(g0, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+  s.connect(hp).connect(g).connect(bus); s.start(t); s.stop(t + 0.07);
+}
+
+function sub(t, f, dur, g0){
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(f, t);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(g0, t + 0.02);
+  g.gain.setValueAtTime(g0, t + dur*0.7);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.05);
+}
+
+// the big detuned saw stab. three oscillators pulled apart, hard driven.
+function stab(t, f, dur, g0, cutoff){
+  const g = actx.createGain(), lp = actx.createBiquadFilter(), ws = drive(4.5);
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(cutoff, t);
+  lp.frequency.exponentialRampToValueAtTime(Math.max(300, cutoff*0.35), t + dur);
+  lp.Q.value = 6;
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(g0, t + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  [-7, 0, 7].forEach(cents => {
+    const o = actx.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = cents;
+    o.connect(g); o.start(t); o.stop(t + dur + 0.05);
+  });
+  g.connect(ws).connect(lp).connect(bus);
+}
+
+function arp(t, f, g0){
+  const o = actx.createOscillator(), g = actx.createGain(), lp = actx.createBiquadFilter();
+  o.type = 'square'; o.frequency.value = f;
+  lp.type = 'lowpass'; lp.frequency.value = 2600;
+  g.gain.setValueAtTime(g0, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+  o.connect(lp).connect(g).connect(bus); o.start(t); o.stop(t + 0.12);
+}
+
+// the long rising howl into the drop
+function riser(t, dur, g0){
+  const s = noise(), bp = actx.createBiquadFilter(), g = actx.createGain();
+  bp.type = 'bandpass'; bp.Q.value = 3.5;
+  bp.frequency.setValueAtTime(220, t);
+  bp.frequency.exponentialRampToValueAtTime(9000, t + dur);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(g0, t + dur*0.92);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.06);
+  s.connect(bp).connect(g).connect(bus); s.start(t); s.stop(t + dur + 0.1);
+}
+
+// ───────────────────────────────────────────── the arrangement
+// A minor, same key as the in-game theme.
+const A = 110, C = 130.81, D = 146.83, E = 164.81, F = 174.61, G = 196;
+const CHORDS = [                       // two bars each, Am – F – C – G
+  [A*2, C*2, E*2], [F*2, A*2, C*3], [C*2, E*2, G*2], [G*2, D*3, G*3]
+];
+const ARP = [A*2, C*3, E*3, C*3, D*3, A*2, E*3, C*3];
+
+function schedule(){
+  const t = s => t0 + s*STEP;
+
+  // ── bars 1-2 · the room is empty. a drone and a heartbeat.
+  sub(t(0), A/2, 3.2, 0.30);
+  for(let s=0; s<BUILD; s+=8){ kick(t(s), 0.55); hit(s, 0.10); }
+  riser(t(8), 5.6, 0.10);
+
+  // ── bars 3-4 · the boast. it starts moving.
+  for(let s=BUILD; s<PRE; s+=4){ kick(t(s), 0.85); hit(s, 0.26); }
+  for(let s=BUILD+8; s<PRE; s+=8){ snare(t(s), 0.42); hit(s, 0.18); }
+  for(let s=BUILD; s<PRE; s+=2) hat(t(s), 0.13);
+  for(let s=BUILD; s<PRE; s++)  arp(t(s), ARP[s % ARP.length], 0.11);
+  sub(t(BUILD), A/2, 3.2, 0.34);
+
+  // ── bar 5 · everything strips away. this is the held breath.
+  riser(t(PRE), 1.55, 0.34);
+  let roll = 4;                                   // snare roll, accelerating
+  for(let s=PRE; s<DROP; s += roll){
+    snare(t(s), 0.22 + (s-PRE)/(DROP-PRE)*0.4);
+    if(s > PRE + 8) roll = 2;
+    if(s > PRE + 13) roll = 1;
+  }
+
+  // ── THE DROP, and then the groove it loops on
+  for(let rep=0; rep<40; rep++){
+    const base = DROP + rep*LOOP;
+    const ch   = CHORDS[rep % CHORDS.length];
+    const big  = rep === 0;
+
+    sub(t(base), ch[0]/2, LOOP*STEP, 0.42);
+    for(let s=0; s<LOOP; s+=4){                   // four to the floor
+      kick(t(base+s), s===0 && big ? 1.25 : 0.98);
+      hit(base+s, s===0 ? (big ? 1.55 : 0.46) : 0.30);
+    }
+    for(let s=8; s<LOOP; s+=8) snare(t(base+s), 0.5);
+    for(let s=0; s<LOOP; s+=2) hat(t(base+s), s%4 ? 0.16 : 0.09);
+    // chord stabs on the offbeat — the part that actually screams
+    [0, 6, 10, 16, 22, 26].forEach(s => {
+      ch.forEach(f => stab(t(base+s), f, 0.42, big && s===0 ? 0.30 : 0.20,
+                           big && s===0 ? 5200 : 3400));
+    });
+    for(let s=0; s<LOOP; s++) arp(t(base+s), ARP[s % ARP.length]*2, 0.075);
+  }
+
+  hit(SUBTTL, 0.95);     // OPERATION B.A.R.K. (the drop itself is the groove's own downbeat)
+}
+
+// ───────────────────────────────────────────── shake + flash, off the audio clock
+const shakeEl = document.getElementById('shake');
+const fx = document.getElementById('fx'), fxc = fx.getContext('2d');
+const c1 = document.getElementById('c1'), c2 = document.getElementById('c2');
+const logo = document.getElementById('logo'), menu = document.getElementById('menu');
+const bigEl = document.getElementById('big'), subEl = document.getElementById('sub');
+
+function fit(){
+  const d = Math.min(2, devicePixelRatio || 1);
+  fx.width = innerWidth*d; fx.height = innerHeight*d;
+  fxc.setTransform(d,0,0,d,0,0);
+}
+addEventListener('resize', fit); fit();
+
+// how hard the screen is shaking right now: every recent impact, decaying
+function shakeAt(now, decay){
+  let a = 0;
+  for(const im of impacts){
+    const dt = now - im.t;
+    if(dt < 0 || dt > 1.2) continue;
+    a += im.mag * Math.exp(-dt * (decay || 7.5));
+  }
+  return a;
+}
+
+function setCard(el, on, y){
+  el.style.opacity = on ? 1 : 0;
+  el.style.transform = `translateY(${y}px)`;
+  el.style.transition = 'opacity .28s, transform .28s';
+}
+
+let raf;
+function frame(){
+  raf = requestAnimationFrame(frame);
+  const now  = nowSec();
+  const step = now / STEP;
+
+  // ── shake. Translate AND rotate, or it reads as a bug instead of a hit.
+  const a = Math.min(2.2, shakeAt(now));
+  const px = a * 26;
+  const sx = (Math.random()-0.5) * px, sy = (Math.random()-0.5) * px;
+  const rot = (Math.random()-0.5) * a * 1.1;
+  const zoom = 1 + a * 0.022;
+  shakeEl.style.transform =
+    `translate(${sx.toFixed(2)}px,${sy.toFixed(2)}px) rotate(${rot.toFixed(3)}deg) scale(${zoom.toFixed(4)})`;
+
+  // ── cards
+  setCard(c1, step > 8  && step < BUILD - 2, step > 8 ? 0 : 14);
+  setCard(c2, step > BUILD && step < PRE + 10, step > BUILD ? 0 : 18);
+
+  if(step > DROP){
+    const k = Math.min(1, (step - DROP) / 6);
+    logo.style.opacity = 1;
+    // slams in oversized, overshoots past 1, then settles
+    const e  = (1-k)*(1-k);
+    const sc = 1 + e*0.85 - Math.sin(k*Math.PI)*0.045;
+    const rz = e * 2.4 * (1 - 2*((DROP|0) % 2));
+    logo.style.transform =
+      `translateY(-5vh) scale(${sc.toFixed(3)}) rotate(${rz.toFixed(2)}deg)`;
+    bigEl.style.letterSpacing = (-0.03 + e*0.07).toFixed(3) + 'em';
+    subEl.style.opacity = step > SUBTTL ? 1 : 0;
+    subEl.style.transform = `translateY(${step > SUBTTL ? 0 : 12}px)`;
+    subEl.style.transition = 'opacity .2s, transform .2s';
+  }
+
+  const showMenu = step > MENU;
+  menu.classList.toggle('on', showMenu);
+  document.getElementById('skip').style.opacity = showMenu ? 0 : 1;
+
+  // ── the flash and the burst behind the logo
+  fxc.clearRect(0, 0, innerWidth, innerHeight);
+  const cx = innerWidth/2, cy = innerHeight/2;
+
+  const flash = shakeAt(now, 22);                 // punches and gets out of the way
+  if(flash > 0.02){
+    fxc.fillStyle = `rgba(255,255,255,${Math.min(0.34, flash*0.26)})`;
+    fxc.fillRect(0, 0, innerWidth, innerHeight);
+  }
+  if(step > DROP){                                // radial speed lines
+    const k = Math.min(1, (step - DROP)/5);
+    fxc.save();
+    fxc.globalAlpha = 0.10 + a*0.22;
+    fxc.strokeStyle = '#ff2d3d'; fxc.lineWidth = 2;
+    const R = Math.hypot(cx, cy);
+    for(let i=0;i<30;i++){
+      const ang = i/30 * Math.PI*2 + step*0.004;
+      const r0 = R*(0.42 + 0.3*k);
+      fxc.beginPath();
+      fxc.moveTo(cx + Math.cos(ang)*r0, cy + Math.sin(ang)*r0);
+      fxc.lineTo(cx + Math.cos(ang)*R*1.5, cy + Math.sin(ang)*R*1.5);
+      fxc.stroke();
+    }
+    fxc.restore();
+  }
+  if(step > PRE && step < DROP){                  // the room drains before the drop
+    const k = (step - PRE)/(DROP - PRE);
+    fxc.fillStyle = `rgba(0,0,0,${k*0.75})`;
+    fxc.fillRect(0, 0, innerWidth, innerHeight);
+  }
+}
+
+// ───────────────────────────────────────────── the tap in
+const tapEl = document.getElementById('tap');
+async function begin(){
+  if(started) return;
+  started = true;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  try { await actx.resume(); } catch(_){}    // a real gesture got us here, so this sticks
+  window.__intro = { seek(st){ held = null; wall0 = performance.now() - st*STEP*1000; },
+                     hold(st){ held = st*STEP; }, run(){ held = null; },
+                     get t(){ return nowSec(); }, get step(){ return nowSec()/STEP; },
+                     get audio(){ return actx.state; }, DROP, MENU, impacts,
+                     get shake(){ return shakeAt(nowSec()); } };
+
+  noiseBuf = actx.createBuffer(1, actx.sampleRate*2, actx.sampleRate);
+  const d = noiseBuf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i] = Math.random()*2 - 1;
+
+  // one limiter on the end, so kick + sub + three saws can stack without clipping
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value = -9; comp.knee.value = 6; comp.ratio.value = 12;
+  comp.attack.value = 0.003; comp.release.value = 0.12;
+  bus = actx.createGain(); bus.gain.value = 0.72;
+  bus.connect(comp).connect(actx.destination);
+
+  t0 = actx.currentTime + 0.12;
+  wall0 = performance.now() + 120;
+  schedule();
+  tapEl.classList.add('gone');
+  frame();
+}
+
+function skip(){
+  if(!started || ended) return;
+  ended = true;
+  // jump the clock past the intro rather than stopping the music
+  const now = nowSec(), target = MENU*STEP;
+  if(now < target){ t0 -= (target - now); wall0 -= (target - now)*1000; }
+}
+
+addEventListener('pointerdown', () => started ? skip() : begin());
+addEventListener('keydown', e => {
+  if(!started){ begin(); return; }
+  if(e.code === 'KeyS' || e.code === 'Escape') skip();
+});
+})();
+</script>
+</body>
+</html>

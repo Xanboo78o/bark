@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DOGGO BATTLES: Operation B.A.R.K. — pitch deck</title>
+<meta name="description" content="A design doc + playable proof of concept for a web-based Doggo Battles fangame.">
+<style>
+  :root{
+    --bg:#12101a; --panel:#1b1830; --panel2:#241f3d; --line:#332c52;
+    --tx:#eae6f4; --mut:#9b93b8;
+    --doggo:#ffd166; --bad:#ff4d6d; --good:#06d6a0; --cool:#4cc9f0;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--tx);
+    font:16px/1.65 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-text-size-adjust:100%;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:0 20px 100px}
+  h1,h2,h3{line-height:1.15;margin:0}
+  h2{font-size:clamp(24px,4.4vw,34px);margin:64px 0 6px;letter-spacing:-.02em}
+  h3{font-size:19px;margin:30px 0 6px}
+  p{margin:14px 0}
+  a{color:var(--cool)}
+  .mut{color:var(--mut)}
+  .small{font-size:14.5px}
+
+  /* hero */
+  header{padding:70px 0 10px;text-align:center;position:relative;overflow:hidden}
+  .kicker{
+    font-size:12.5px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--doggo);font-weight:800;margin-bottom:14px
+  }
+  h1{
+    font-size:clamp(38px,9vw,74px);font-weight:900;letter-spacing:-.035em;
+    background:linear-gradient(180deg,#fff,var(--doggo));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .sub{font-size:clamp(16px,2.6vw,20px);color:var(--mut);margin:16px auto 0;max-width:560px}
+  .stamp{
+    display:inline-block;margin-top:24px;border:2px dashed var(--bad);color:var(--bad);
+    padding:7px 16px;border-radius:8px;font-weight:800;font-size:12.5px;
+    letter-spacing:.14em;text-transform:uppercase;transform:rotate(-2deg)
+  }
+
+  /* blocks */
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:22px 24px;margin:26px 0
+  }
+  .card.tight{padding:18px 20px}
+  .lede{font-size:18.5px;color:var(--tx)}
+  blockquote{
+    margin:22px 0;padding:14px 20px;border-left:4px solid var(--doggo);
+    background:var(--panel);border-radius:0 12px 12px 0;color:var(--tx);font-size:17px
+  }
+  ul{padding-left:22px} li{margin:7px 0}
+  code{
+    background:var(--panel2);padding:2px 7px;border-radius:5px;
+    font:13.5px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--doggo)
+  }
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));margin:20px 0}
+  .grid .card{margin:0}
+  .tag{
+    display:inline-block;font-size:11.5px;font-weight:800;letter-spacing:.1em;
+    text-transform:uppercase;padding:4px 10px;border-radius:99px;margin-bottom:8px
+  }
+  .t-no{background:rgba(255,77,109,.15);color:var(--bad)}
+  .t-yes{background:rgba(6,214,160,.15);color:var(--good)}
+  .t-maybe{background:rgba(76,201,240,.15);color:var(--cool)}
+
+  /* demos */
+  .demo{margin:26px 0;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel)}
+  .demo-head{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:13px 18px;background:var(--panel2);border-bottom:1px solid var(--line)
+  }
+  .demo-head b{font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+  .demo-head .hint{margin-left:auto;font-size:12.5px;color:var(--mut)}
+  .stage{position:relative;width:100%;aspect-ratio:16/9;background:#0d0b14}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .veil{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(13,11,20,.72);cursor:pointer;z-index:2;
+    font-weight:800;letter-spacing:.1em;text-transform:uppercase;font-size:14px;color:var(--doggo)
+  }
+  .veil.gone{display:none}
+  .demo-foot{padding:12px 18px;font-size:14.5px;color:var(--mut);border-top:1px solid var(--line)}
+
+  .pad{display:none;gap:8px;padding:12px 18px;border-top:1px solid var(--line);flex-wrap:wrap}
+  .pad button{
+    flex:1;min-width:60px;padding:15px 8px;font-size:15px;font-weight:800;
+    background:var(--panel2);color:var(--tx);border:1px solid var(--line);border-radius:10px
+  }
+  .pad button:active{background:var(--doggo);color:#1b1830}
+  body.touch .pad{display:flex}
+
+  footer{margin-top:70px;padding-top:26px;border-top:1px solid var(--line);color:var(--mut);font-size:14px}
+  hr{border:0;border-top:1px solid var(--line);margin:52px 0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <div class="kicker">A Doggo Battles fangame · pitch &amp; proof of concept</div>
+  <h1>OPERATION<br>B.A.R.K.</h1>
+  <p class="sub">Doggo Battles, except you can't win the fight. You can only pay for a few more seconds.</p>
+  <div class="stamp">Asking permission first</div>
+</header>
+
+<div class="card">
+  <p class="lede" style="margin-top:0"><b>Hi ANN.</b> This is a fangame pitch, not a finished thing, and I'm not building it unless you're cool with it. Doggo Battles is yours. Everything below is a proposal — including whether it exists at all.</p>
+  <p class="mut small" style="margin-bottom:0">The demos on this page are real and running in your browser right now. Shapes are placeholders. Every doggo here is a circle with ears until the actual art goes in.</p>
+</div>
+
+<h2>The one-line pitch</h2>
+<blockquote>
+  You're a doggo working the night shift at a facility that contains things it probably shouldn't. You have your kit. Your kit does not save you.
+</blockquote>
+
+<h2>Why this isn't just another fangame</h2>
+
+<p>There are a lot of DB fangames. They're all on Scratch, which means they're all competing on the same thing — <i>who can build the best Scratch project</i> — and they're all hitting the same ceiling.</p>
+
+<p>That ceiling isn't anyone's fault. <b>Re'ruffed</b> is enormous and it lags because Scratch lags, not because IMakeFunni did anything wrong. Scratch cloud variables are ten numbers, they're slow, and they can't carry a real multiplayer game. Everyone is building brilliant things inside a box.</p>
+
+<p class="lede">This one isn't in the box. It's a web app, and that changes what's <i>possible</i>, not just what's smooth:</p>
+
+<div class="grid">
+  <div class="card">
+    <span class="tag t-no">Scratch can't</span>
+    <b>Real online multiplayer</b>
+    <p class="small mut" style="margin-bottom:0">Cloud vars are 10 numbers and slow. Nobody has ever played DB with a friend over the internet. Not "it'd be laggy" — it can't be done.</p>
+  </div>
+  <div class="card">
+    <span class="tag t-no">Scratch can't</span>
+    <b>A building you explore</b>
+    <p class="small mut" style="margin-bottom:0">Big spaces with state that persists as you move through them. Doors that stay open. Lights that stay off.</p>
+  </div>
+  <div class="card">
+    <span class="tag t-no">Scratch can't</span>
+    <b>Lots of stuff at once</b>
+    <p class="small mut" style="margin-bottom:0">The wall Re'ruffed hit. Dozens of things moving, still 60fps.</p>
+  </div>
+</div>
+
+<hr>
+
+<h2>Proof #1 — it moves</h2>
+<p>Same controls DB already has. WASD or arrows. Space to bark, which does nothing useful and is included because it's funny.</p>
+
+<div class="demo">
+  <div class="demo-head">
+    <b>Movement test</b>
+    <span class="hint">WASD / arrows · Space to bork</span>
+  </div>
+  <div class="stage">
+    <canvas id="c-move"></canvas>
+    <div class="veil" data-for="c-move">Click to play</div>
+  </div>
+  <div class="pad" data-pad="c-move">
+    <button data-k="w">↑</button><button data-k="a">←</button>
+    <button data-k="s">↓</button><button data-k="d">→</button>
+    <button data-k=" ">BORK</button>
+  </div>
+  <div class="demo-foot">Placeholder doggo is a circle with two triangles taped on. It squashes when it runs and its ears flop the wrong way, which is the correct number of details for a placeholder.</div>
+</div>
+
+<hr>
+
+<h2>The actual idea</h2>
+
+<p>Here's the part that makes this worth building instead of just being "DB but bigger."</p>
+
+<p class="lede">In every DB game, combat <b>is</b> the game. You fight, you win, that's the loop. In Operation B.A.R.K., combat is a <b>resource</b>.</p>
+
+<p>You keep everything you already know — the kit, the specials, the med-kits dropping on a timer. All of it works exactly like it does in DB. But none of it kills the things in the facility. What it does is <b>buy you seconds</b>.</p>
+
+<ul>
+  <li>A mallet swing <b>staggers</b> it — just long enough to get through a door.</li>
+  <li>A special <b>knocks it back</b> — and burns a cooldown you're going to regret.</li>
+  <li>A med-kit <b>heals</b> you — and the noise brings something else.</li>
+</ul>
+
+<p>You never win the fight. You pay to survive it. Which means every skill anyone already has from DB still matters, and you're still terrified, and those two things have never been true at the same time in this franchise.</p>
+
+<h2>Proof #2 — the thing in the hallway</h2>
+<p>You cannot beat this. This demo plays itself, on a loop, forever, exactly like the doggo's life now.</p>
+
+<div class="demo">
+  <div class="demo-head">
+    <b>Chase animation</b>
+    <span class="hint">plays by itself · no controls · pure vibes</span>
+  </div>
+  <div class="stage">
+    <canvas id="c-chase"></canvas>
+  </div>
+  <div class="demo-foot">Monster is a wobbling blob with too many eyes. Final version will have art. It will not have fewer eyes.</div>
+</div>
+
+<h2>Proof #3 — combat as a resource</h2>
+<p class="lede">This is the whole pitch in one playable box.</p>
+<p>Get to the green door. The monster is faster than you, so running doesn't work. <b>Space</b> bonks it — it staggers for about a second, then the bonk goes on a long cooldown. That's your window. That's the entire game.</p>
+
+<div class="demo">
+  <div class="demo-head">
+    <b>Stagger test</b>
+    <span class="hint">move · Space to BONK · reach the door</span>
+  </div>
+  <div class="stage">
+    <canvas id="c-stag"></canvas>
+    <div class="veil" data-for="c-stag">Click to play</div>
+  </div>
+  <div class="pad" data-pad="c-stag">
+    <button data-k="w">↑</button><button data-k="a">←</button>
+    <button data-k="s">↓</button><button data-k="d">→</button>
+    <button data-k=" ">BONK</button>
+  </div>
+  <div class="demo-foot">Notice you never kill it. You just keep buying seconds until you're out of building. That feeling is the game.</div>
+</div>
+
+<hr>
+
+<h2>Why anyone plays it twice</h2>
+
+<p>Horror games die on replay — you learn where the scares are and it deflates. Three fixes, and they stack:</p>
+
+<div class="grid">
+  <div class="card">
+    <span class="tag t-yes">The big one</span>
+    <b>Bring friends</b>
+    <p class="small mut" style="margin-bottom:0">Terrifying alone, unbelievably stupid with four people. Nobody replays horror for the monster — they replay it for what their friend did when the monster showed up. This is the multiplayer Scratch literally cannot do.</p>
+  </div>
+  <div class="card">
+    <span class="tag t-maybe">Structural</span>
+    <b>Shuffle the building</b>
+    <p class="small mut" style="margin-bottom:0">Layout and which anomalies are awake change every run. You can't memorize a route that isn't there.</p>
+  </div>
+  <div class="card">
+    <span class="tag t-maybe">Structural</span>
+    <b>Knowledge is the upgrade</b>
+    <p class="small mut" style="margin-bottom:0">No stat tree. You learn that this one hunts by sound and that one freezes if you look at it. Run five is easier because <i>you</i> got better.</p>
+  </div>
+</div>
+
+<h2>What I'm actually asking</h2>
+
+<div class="card">
+  <p style="margin-top:0"><b>Permission.</b> That's it. Doggo Battles is yours and this doesn't get built without a yes.</p>
+  <p>If it's a yes, some things I'd want to agree on up front:</p>
+  <ul>
+    <li><b>Credit.</b> Created by ANormalName1, front and center, on the title screen and the page.</li>
+    <li><b>It's a fangame.</b> Not a sequel, not official, not competing with anything. Free, always.</li>
+    <li><b>Your call on canon.</b> If something contradicts what DB is, it changes. You get veto.</li>
+    <li><b>You can be as involved as you want.</b> Including "not at all," which is a completely fine answer.</li>
+  </ul>
+  <p style="margin-bottom:0">And if it's a no, that's genuinely fine — I'll delete the repo and we never speak of it again. Wanted to ask before building rather than after.</p>
+</div>
+
+<footer>
+  <p><b>Doggo Battles</b> created by <b>ANormalName1</b>. This is an unofficial fan proposal with no affiliation, seeking permission before any development begins.</p>
+  <p class="small">Built as a static page. All demos run locally in your browser — no accounts, no tracking, nothing sent anywhere. Placeholder art throughout.</p>
+</footer>
+
+</div>
+
+<script>
+/* ------------------------------------------------------------------ *
+ * SPRITE SWAP: set this to an image URL and drawDoggo() will use it
+ * instead of the placeholder shapes. Everything else stays the same.
+ * ------------------------------------------------------------------ */
+const DOGGO_SPRITE = null;
+let doggoImg = null;
+if (DOGGO_SPRITE) { doggoImg = new Image(); doggoImg.src = DOGGO_SPRITE; }
+
+if (matchMedia('(hover: none)').matches) document.body.classList.add('touch');
+
+/* ---------- tiny canvas helper ---------- */
+function stage(id){
+  const cv = document.getElementById(id);
+  const ctx = cv.getContext('2d');
+  const S = { cv, ctx, w:0, h:0, live:false, keys:Object.create(null) };
+  function fit(){
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const r = cv.getBoundingClientRect();
+    if (!r.width) return;
+    S.w = r.width; S.h = r.height;
+    cv.width = Math.round(r.width * dpr);
+    cv.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  fit();
+  new ResizeObserver(fit).observe(cv);
+  new IntersectionObserver(es => { S.live = es[0].isIntersecting; }, {threshold:.1})
+    .observe(cv);
+  return S;
+}
+
+/* ---------- shared input, only while a demo is focused ---------- */
+const focused = { id:null };
+document.querySelectorAll('.veil').forEach(v => {
+  v.addEventListener('click', () => { v.classList.add('gone'); focused.id = v.dataset.for; });
+});
+document.querySelectorAll('.stage').forEach(st => {
+  st.addEventListener('pointerdown', () => {
+    const cv = st.querySelector('canvas');
+    if (cv && cv.id !== 'c-chase') focused.id = cv.id;
+  });
+});
+const KEYS = Object.create(null);
+addEventListener('keydown', e => {
+  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  KEYS[k] = true;
+  if (focused.id && [' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault();
+});
+addEventListener('keyup', e => { KEYS[e.key.length===1 ? e.key.toLowerCase() : e.key] = false; });
+document.querySelectorAll('.pad').forEach(pad => {
+  pad.querySelectorAll('button').forEach(b => {
+    const k = b.dataset.k;
+    const on = e => { e.preventDefault(); focused.id = pad.dataset.pad; KEYS[k] = true; };
+    const off = e => { e.preventDefault(); KEYS[k] = false; };
+    b.addEventListener('pointerdown', on);
+    b.addEventListener('pointerup', off);
+    b.addEventListener('pointerleave', off);
+    b.addEventListener('pointercancel', off);
+  });
+});
+function held(id, ...ks){ return focused.id === id && ks.some(k => KEYS[k]); }
+
+/* ---------- placeholder art ---------- */
+function drawDoggo(ctx, x, y, vx, vy, t, scale, tint){
+  const sp = Math.hypot(vx, vy);
+  const run = Math.min(sp / 190, 1);
+  const bob = Math.sin(t * 13) * 2.4 * run;
+  const sq  = 1 + Math.sin(t * 13) * 0.075 * run;
+  const face = vx === 0 ? 1 : Math.sign(vx);
+  const R = 20 * scale;
+
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.scale(face, 1);
+
+  // shadow
+  ctx.globalAlpha = .3;
+  ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(0, R * 1.15, R * .82, R * .26, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  if (doggoImg && doggoImg.complete) {
+    ctx.drawImage(doggoImg, -R, -R, R * 2, R * 2);
+    ctx.restore(); return;
+  }
+
+  // tail
+  ctx.strokeStyle = tint; ctx.lineWidth = R * .28; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-R * .72, 0);
+  ctx.quadraticCurveTo(-R * 1.3, -R * .3, -R * 1.15, -R * .9 + Math.sin(t * 17) * R * .5);
+  ctx.stroke();
+
+  // legs
+  ctx.lineWidth = R * .2;
+  for (let i = 0; i < 4; i++){
+    const ox = (i < 2 ? -1 : 1) * R * .42 + (i % 2 ? R * .16 : -R * .16);
+    const kick = Math.sin(t * 13 + i * 1.7) * R * .42 * run;
+    ctx.beginPath(); ctx.moveTo(ox, R * .5); ctx.lineTo(ox + kick, R * 1.05); ctx.stroke();
+  }
+
+  // body
+  ctx.fillStyle = tint;
+  ctx.beginPath(); ctx.ellipse(0, 0, R * .88 / sq, R * .72 * sq, 0, 0, 7); ctx.fill();
+  // head
+  ctx.beginPath(); ctx.arc(R * .62, -R * .48, R * .55, 0, 7); ctx.fill();
+
+  // ears (flop opposite to motion, because physics)
+  const flop = -vx * .0022 - Math.sin(t * 9) * .16;
+  [-1, 1].forEach(s => {
+    ctx.save();
+    ctx.translate(R * .55 + s * R * .12, -R * .9);
+    ctx.rotate(flop + s * .38);
+    ctx.beginPath(); ctx.ellipse(0, R * .3, R * .17, R * .42, 0, 0, 7); ctx.fill();
+    ctx.restore();
+  });
+
+  // eyes
+  const look = Math.max(-1, Math.min(1, vx / 150));
+  [[R * .48, -R * .58], [R * .84, -R * .58]].forEach(([ex, ey]) => {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(ex, ey, R * .155, 0, 7); ctx.fill();
+    ctx.fillStyle = '#191428';
+    ctx.beginPath(); ctx.arc(ex + look * R * .06, ey, R * .085, 0, 7); ctx.fill();
+  });
+  // nose
+  ctx.fillStyle = '#191428';
+  ctx.beginPath(); ctx.arc(R * 1.06, -R * .38, R * .11, 0, 7); ctx.fill();
+  ctx.restore();
+}
+
+function drawMonster(ctx, x, y, t, scale, rage){
+  const R = 34 * scale;
+  ctx.save(); ctx.translate(x, y);
+
+  ctx.globalAlpha = .34; ctx.fillStyle = '#000';
+  ctx.beginPath(); ctx.ellipse(0, R * .95, R * .9, R * .25, 0, 0, 7); ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // wobbling blob
+  ctx.fillStyle = rage ? '#ff7a90' : '#ff4d6d';
+  ctx.beginPath();
+  for (let i = 0; i <= 32; i++){
+    const a = i / 32 * Math.PI * 2;
+    const rr = R * (1 + Math.sin(a * 3 + t * 7) * .11 + Math.sin(a * 5 - t * 4) * .06);
+    const px = Math.cos(a) * rr, py = Math.sin(a) * rr * .92;
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  }
+  ctx.closePath(); ctx.fill();
+
+  // far too many eyes
+  const eyes = [[-.34,-.3,.15],[.1,-.42,.11],[.4,-.16,.13],[-.12,.06,.09],[.28,.2,.08],[-.46,.14,.07]];
+  eyes.forEach(([ex, ey, er], i) => {
+    const blink = Math.sin(t * 2.3 + i * 2.1) > .93;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.ellipse(ex*R, ey*R, er*R, blink ? er*R*.12 : er*R, 0, 0, 7); ctx.fill();
+    if (!blink){
+      ctx.fillStyle = '#12101a';
+      ctx.beginPath(); ctx.arc(ex*R + Math.sin(t*1.6+i)*er*R*.3, ey*R, er*R*.5, 0, 7); ctx.fill();
+    }
+  });
+
+  // teeth
+  ctx.fillStyle = '#12101a';
+  ctx.beginPath(); ctx.ellipse(0, R * .52, R * .46, R * .2, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#fff';
+  for (let i = 0; i < 6; i++){
+    const tx = -R * .4 + i * R * .16;
+    ctx.beginPath(); ctx.moveTo(tx, R * .38);
+    ctx.lineTo(tx + R * .07, R * .62); ctx.lineTo(tx + R * .14, R * .38);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function pop(ctx, x, y, txt, life, size, col){
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, life);
+  ctx.translate(x, y - (1 - life) * 34);
+  ctx.rotate(-.14);
+  ctx.font = '900 ' + size + 'px ui-sans-serif,system-ui,sans-serif';
+  ctx.textAlign = 'center';
+  ctx.lineWidth = size * .22; ctx.strokeStyle = '#12101a'; ctx.lineJoin = 'round';
+  ctx.strokeText(txt, 0, 0);
+  ctx.fillStyle = col; ctx.fillText(txt, 0, 0);
+  ctx.restore();
+}
+
+function room(ctx, w, h){
+  ctx.fillStyle = '#0d0b14'; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = '#221d3a'; ctx.lineWidth = 1;
+  for (let x = 0; x < w; x += 34){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for (let y = 0; y < h; y += 34){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+  ctx.strokeStyle = '#3a3160'; ctx.lineWidth = 3;
+  ctx.strokeRect(1.5, 1.5, w - 3, h - 3);
+}
+
+/* ================= DEMO 1 — movement ================= */
+(function(){
+  const S = stage('c-move');
+  const p = { x:0, y:0, vx:0, vy:0 }, puffs = [], barks = [];
+  let t = 0, init = false, cool = 0;
+
+  requestAnimationFrame(function loop(ms){
+    requestAnimationFrame(loop);
+    if (!S.live || !S.w) return;
+    const { ctx, w, h } = S;
+    if (!init){ p.x = w * .5; p.y = h * .55; init = true; }
+    const dt = 1/60; t += dt;
+
+    let ax = 0, ay = 0;
+    if (held('c-move','a','ArrowLeft'))  ax -= 1;
+    if (held('c-move','d','ArrowRight')) ax += 1;
+    if (held('c-move','w','ArrowUp'))    ay -= 1;
+    if (held('c-move','s','ArrowDown'))  ay += 1;
+    const m = Math.hypot(ax, ay) || 1;
+    p.vx += (ax/m * 235 - p.vx) * .16;
+    p.vy += (ay/m * 235 - p.vy) * .16;
+    p.x = Math.max(34, Math.min(w-34, p.x + p.vx*dt));
+    p.y = Math.max(48, Math.min(h-30, p.y + p.vy*dt));
+
+    if (Math.hypot(p.vx,p.vy) > 60 && Math.random() < .34)
+      puffs.push({ x:p.x - Math.sign(p.vx)*14, y:p.y+18, r:3, l:1 });
+
+    cool -= dt;
+    if (held('c-move',' ') && cool <= 0){
+      cool = .42;
+      barks.push({ x:p.x+16, y:p.y-22, l:1 });
+      for (let i=0;i<3;i++) puffs.push({ x:p.x+20, y:p.y-10+i*6, r:4, l:1 });
+    }
+
+    room(ctx, w, h);
+    ctx.fillStyle = '#1d1834';
+    [[.16,.24],[.72,.68],[.44,.82]].forEach(([fx,fy],i)=>{
+      ctx.fillRect(w*fx, h*fy, 46+i*14, 26+i*8);
+    });
+
+    for (let i=puffs.length-1;i>=0;i--){
+      const q = puffs[i]; q.l -= dt*2.1; q.r += dt*22; q.y -= dt*9;
+      if (q.l<=0){ puffs.splice(i,1); continue; }
+      ctx.globalAlpha = q.l*.4; ctx.fillStyle='#6b5f9c';
+      ctx.beginPath(); ctx.arc(q.x,q.y,q.r,0,7); ctx.fill(); ctx.globalAlpha=1;
+    }
+
+    drawDoggo(ctx, p.x, p.y, p.vx, p.vy, t, 1, '#ffd166');
+
+    for (let i=barks.length-1;i>=0;i--){
+      const b = barks[i]; b.l -= dt*1.7;
+      if (b.l<=0){ barks.splice(i,1); continue; }
+      ctx.globalAlpha = b.l*.65; ctx.strokeStyle='#ffd166'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(b.x,b.y,(1-b.l)*52,0,7); ctx.stroke(); ctx.globalAlpha=1;
+      pop(ctx, b.x, b.y-16, 'BORK!', b.l, 22, '#ffd166');
+    }
+
+    ctx.fillStyle = '#5c5382'; ctx.font = '600 12px ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(focused.id==='c-move' ? 'WASD to move · Space to bork' : 'click here first', 14, 22);
+  });
+})();
+
+/* ================= DEMO 2 — chase (auto) ================= */
+(function(){
+  const S = stage('c-chase');
+  const d = { x:0, y:0, vx:0, vy:0 }, m = { x:0, y:0 };
+  const yells = ['AAAAA','oh no','NOPE','WHY','help'];
+  let t = 0, init = false, next = 1.4, yi = 0, shout = null;
+
+  requestAnimationFrame(function loop(){
+    requestAnimationFrame(loop);
+    if (!S.live || !S.w) return;
+    const { ctx, w, h } = S;
+    if (!init){ d.x=w*.3; d.y=h*.5; m.x=w*.75; m.y=h*.5; init=true; }
+    const dt = 1/60; t += dt;
+
+    // doggo runs a lissajous panic lap
+    const nx = w*.5 + Math.cos(t*1.15)*w*.31;
+    const ny = h*.52 + Math.sin(t*1.9)*h*.27;
+    d.vx = (nx-d.x)/dt*.06; d.vy = (ny-d.y)/dt*.06;
+    d.x = nx; d.y = ny;
+
+    // monster follows, always a beat behind
+    m.x += (d.x - m.x) * .026;
+    m.y += (d.y - m.y) * .026;
+
+    next -= dt;
+    if (next <= 0){ next = 1.1 + Math.random()*1.2; shout = { l:1, x:d.x, y:d.y-40, s:yells[yi++%yells.length] }; }
+
+    room(ctx, w, h);
+
+    // motion streaks
+    ctx.strokeStyle = 'rgba(255,209,102,.16)'; ctx.lineWidth = 2;
+    for (let i=1;i<7;i++){
+      ctx.beginPath();
+      ctx.moveTo(w*.5+Math.cos((t-i*.05)*1.15)*w*.31, h*.52+Math.sin((t-i*.05)*1.9)*h*.27);
+      ctx.lineTo(w*.5+Math.cos((t-(i+1)*.05)*1.15)*w*.31, h*.52+Math.sin((t-(i+1)*.05)*1.9)*h*.27);
+      ctx.stroke();
+    }
+
+    drawMonster(ctx, m.x, m.y, t, 1, false);
+    drawDoggo(ctx, d.x, d.y, d.vx, d.vy, t, 1, '#ffd166');
+
+    // sweat
+    for (let i=0;i<3;i++){
+      const a = (t*3+i*2.1)%1;
+      ctx.globalAlpha = (1-a)*.85; ctx.fillStyle = '#4cc9f0';
+      ctx.beginPath(); ctx.arc(d.x-18-a*16, d.y-26-a*13, 3.2, 0, 7); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    if (shout){
+      shout.l -= dt*1.05;
+      if (shout.l <= 0) shout = null;
+      else pop(ctx, d.x, d.y-46, shout.s, shout.l, 26, '#fff');
+    }
+
+    ctx.fillStyle = '#5c5382'; ctx.font = '600 12px ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign='left'; ctx.fillText('this has been going on for some time', 14, 22);
+  });
+})();
+
+/* ================= DEMO 3 — stagger ================= */
+(function(){
+  const S = stage('c-stag');
+  const p = { x:0, y:0, vx:0, vy:0 }, m = { x:0, y:0 };
+  let t=0, init=false, cd=0, stun=0, msg=null, won=0, fx=0;
+
+  function reset(w,h){ p.x=w*.12; p.y=h*.55; p.vx=p.vy=0; m.x=w*.62; m.y=h*.5; cd=0; stun=0; won=0; }
+
+  requestAnimationFrame(function loop(){
+    requestAnimationFrame(loop);
+    if (!S.live || !S.w) return;
+    const { ctx, w, h } = S;
+    if (!init){ reset(w,h); init=true; }
+    const dt = 1/60; t += dt;
+    const doorX = w - 46;
+
+    if (!won){
+      let ax=0, ay=0;
+      if (held('c-stag','a','ArrowLeft'))  ax-=1;
+      if (held('c-stag','d','ArrowRight')) ax+=1;
+      if (held('c-stag','w','ArrowUp'))    ay-=1;
+      if (held('c-stag','s','ArrowDown'))  ay+=1;
+      const mm = Math.hypot(ax,ay)||1;
+      p.vx += (ax/mm*205 - p.vx)*.17;
+      p.vy += (ay/mm*205 - p.vy)*.17;
+      p.x = Math.max(24, Math.min(w-24, p.x+p.vx*dt));
+      p.y = Math.max(28, Math.min(h-24, p.y+p.vy*dt));
+
+      cd -= dt; stun -= dt;
+      const dist = Math.hypot(m.x-p.x, m.y-p.y);
+
+      if (held('c-stag',' ') && cd<=0 && dist < 112){
+        cd = 3.2; stun = 1.15; fx = 1;
+        const a = Math.atan2(m.y-p.y, m.x-p.x);
+        m.x += Math.cos(a)*52; m.y += Math.sin(a)*52;
+        msg = { s:'BONK!', l:1, c:'#06d6a0' };
+      } else if (held('c-stag',' ') && cd<=0){
+        cd = .9; msg = { s:'swing... nothing there', l:1, c:'#9b93b8' };
+      }
+
+      // the thing only wakes up once you've taken control
+      if (stun <= 0 && focused.id === 'c-stag'){
+        const a = Math.atan2(p.y-m.y, p.x-m.x);
+        m.x += Math.cos(a)*248*dt; m.y += Math.sin(a)*248*dt;
+      }
+
+      if (dist < 30 && focused.id === 'c-stag'){ msg = { s:'CAUGHT', l:1, c:'#ff4d6d' }; fx=1; reset(w,h); }
+      if (p.x > doorX-16){ won = 1.9; msg = { s:'OUT!', l:1, c:'#06d6a0' }; }
+    } else {
+      won -= dt;
+      if (won <= 0) reset(w,h);
+    }
+
+    // shake
+    ctx.save();
+    if (fx > 0){ fx -= dt*3.4; ctx.translate((Math.random()-.5)*fx*11, (Math.random()-.5)*fx*11); }
+
+    room(ctx, w, h);
+
+    // door
+    ctx.fillStyle = '#06d6a0';
+    ctx.fillRect(doorX, h*.32, 26, h*.36);
+    ctx.fillStyle = '#0d0b14'; ctx.font='900 11px ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.fillText('OUT', doorX+13, h*.53);
+
+    if (stun > 0){
+      ctx.globalAlpha = .5; ctx.strokeStyle='#06d6a0'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.arc(m.x, m.y, 46+Math.sin(t*30)*4, 0, 7); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    drawMonster(ctx, m.x, m.y, t, .92, stun>0);
+    if (stun > 0) pop(ctx, m.x, m.y-52, 'stunned', Math.min(1,stun), 16, '#06d6a0');
+
+    drawDoggo(ctx, p.x, p.y, p.vx, p.vy, t, .92, '#ffd166');
+
+    // cooldown bar
+    const bw = 128;
+    ctx.fillStyle = '#241f3d'; ctx.fillRect(14, h-24, bw, 9);
+    ctx.fillStyle = cd>0 ? '#ff4d6d' : '#06d6a0';
+    ctx.fillRect(14, h-24, bw*(cd>0 ? 1-cd/3.2 : 1), 9);
+    ctx.fillStyle='#7d74a8'; ctx.font='600 11px ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText(cd>0 ? 'BONK recharging' : 'BONK ready — Space', 14, h-30);
+
+    if (msg){
+      msg.l -= dt*1.15;
+      if (msg.l<=0) msg=null;
+      else pop(ctx, w*.5, h*.3, msg.s, msg.l, 30, msg.c);
+    }
+
+    ctx.fillStyle='#5c5382'; ctx.font='600 12px ui-sans-serif,system-ui,sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText(focused.id==='c-stag' ? 'get to the green door' : 'click here first', 14, 22);
+    ctx.restore();
+  });
+})();
+</script>
+</body>
+</html>

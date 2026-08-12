@@ -1,0 +1,2103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>B.A.R.K. — AREA 1: THE BUNKER</title>
+<style>
+  :root{
+    --bg:#12101a; --panel:#1b1830; --panel2:#241f3d; --line:#332c52;
+    --tx:#eae6f4; --mut:#9b93b8; --doggo:#ffd166; --cool:#4cc9f0;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
+    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
+  #stage{position:fixed;inset:0;display:flex;flex-direction:column}
+  #wrap{flex:1;position:relative;overflow:hidden}
+  canvas#game{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:block}
+
+  #hud{position:absolute;left:14px;top:12px;pointer-events:none;z-index:5;
+    background:rgba(255,255,255,.80);padding:7px 13px 8px;border-radius:13px}
+  #who{font-weight:900;letter-spacing:.12em;font-size:14px;text-transform:uppercase;
+    color:#1d3346;text-shadow:0 1px 0 rgba(255,255,255,.45)}
+  #move{font-size:12.5px;color:#3f5b70;margin-top:2px;text-shadow:0 1px 0 rgba(255,255,255,.4)}
+  #coins{font-size:12px;font-weight:800;color:#7a6a3c;margin-top:4px;letter-spacing:.06em}
+  #biome{font-size:11px;color:#6d7f8e;margin-top:2px;letter-spacing:.14em;text-transform:uppercase}
+  #tip{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:5;
+    font-size:13px;color:var(--mut);text-align:center;pointer-events:none;
+    background:rgba(18,16,26,.72);padding:6px 14px;border-radius:99px;border:1px solid var(--line)}
+  #tip.hot{color:var(--cool);border-color:var(--cool)}
+  #banner{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%);z-index:6;
+    font-weight:900;font-size:34px;letter-spacing:-.02em;color:#06d6a0;opacity:0;
+    transition:opacity .3s;pointer-events:none;text-align:center}
+  #banner.on{opacity:1;pointer-events:auto}
+
+  /* health — the bunker is the first area with damage in it */
+  #hp{margin-top:5px;width:132px;height:9px;border-radius:99px;background:#00000028;
+    overflow:hidden;box-shadow:inset 0 0 0 1px #0000001f}
+  #hpf{height:100%;width:100%;border-radius:99px;background:#e63946;transition:width .16s}
+  /* the dismantled robo, the flooded stairwell, the door your chip can't open */
+  #say{position:absolute;left:50%;transform:translateX(-50%);bottom:56px;z-index:6;
+    max-width:min(560px,86vw);text-align:center;font-size:14px;line-height:1.5;
+    color:#ffe9b8;background:rgba(12,10,20,.9);border:1px solid #5b4a2a;
+    padding:11px 18px;border-radius:14px;opacity:0;transition:opacity .25s;pointer-events:none}
+  #say.on{opacity:1}
+  #say b{color:#ff6b6b;letter-spacing:.1em;font-size:11px;display:block;margin-bottom:3px;
+    text-transform:uppercase}
+
+  #roster{position:absolute;inset:0;z-index:20;display:none;
+    background:rgba(10,8,18,.9);backdrop-filter:blur(3px);
+    align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:16px}
+  #roster.on{display:flex}
+  #roster h2{margin:0;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--cool)}
+  #cards{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;
+    max-width:1000px;max-height:66vh;overflow-y:auto;padding:4px}
+  .card{width:114px;background:var(--panel);border:2px solid var(--line);border-radius:13px;
+    padding:8px 7px;text-align:center;cursor:pointer;transition:border-color .12s,transform .12s}
+  .card.sel{border-color:var(--doggo);transform:translateY(-3px)}
+  .card.lock{opacity:.45}
+  .card canvas{display:block;margin:0 auto 4px;background:var(--panel2);border-radius:8px}
+  .card b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;line-height:1.25}
+  .card .stat{font-size:10px;color:var(--cool);margin-top:3px;letter-spacing:.04em}
+  .card .abil{display:block;font-size:10.5px;color:var(--tx);margin-top:3px;line-height:1.3}
+  .card .note{display:block;font-size:9.5px;color:var(--mut);margin-top:3px;line-height:1.3}
+  #rhint{font-size:12px;color:var(--mut)}
+
+  #pad{display:none;gap:8px;padding:10px 12px 14px;background:var(--panel);border-top:1px solid var(--line)}
+  #pad button{flex:1;background:var(--panel2);color:var(--tx);border:1px solid var(--line);
+    border-radius:12px;padding:16px 0;font-size:17px;font-weight:800;touch-action:none}
+  #pad button:active{background:var(--line)}
+  body.touch #pad{display:flex}
+
+  /* one game: every screen can get back to the front door */
+  #nav{position:fixed;left:14px;bottom:14px;z-index:30;font:700 11px/1 ui-sans-serif,system-ui,sans-serif;
+    letter-spacing:.18em;text-transform:uppercase;text-decoration:none;color:#9b93b8;
+    background:rgba(18,16,26,.82);border:1px solid #332c52;padding:9px 14px;border-radius:99px}
+  #nav:hover{color:#ffd166;border-color:#ffd166}
+</style>
+</head>
+<body>
+<a id="nav" href="index.html">◀ Menu</a>
+<div id="stage">
+  <div id="wrap">
+    <canvas id="game"></canvas>
+    <div id="hud"><div id="who"></div><div id="move"></div>
+      <div id="coins">0 / 9 coins</div><div id="biome">the bunker</div>
+      <div id="hp"><div id="hpf"></div></div></div>
+    <div id="tip"></div>
+    <div id="say"></div>
+    <div id="banner">OUT OF THE BUNKER<br><a href="index.html" style="display:inline-block;margin-top:18px;font-size:14px;letter-spacing:.18em;color:#0a0810;background:#06d6a0;padding:12px 22px;border-radius:12px;text-decoration:none">End of Chapter 1</a></div>
+    <div id="roster">
+      <h2>Kennel — pick who goes out</h2>
+      <div id="cards"></div>
+      <div id="rhint">← → ↑ ↓ to browse · Enter to take them · Esc to cancel</div>
+    </div>
+  </div>
+  <div id="pad">
+    <button data-k="left">←</button>
+    <button data-k="right">→</button>
+    <button data-k="up">↑</button>
+    <button data-k="use">E</button>
+    <button data-k="jump">JUMP</button>
+  </div>
+</div>
+<script>
+(() => {
+'use strict';
+
+// ───────────────────────────────────────────── config
+const T = 32;
+const VIEW_W = 672, VIEW_H = 448;   // 21 x 14 tiles — zoomed in, so the camera pans vertically too
+
+const GRAV      = 1800;
+const MAX_FALL  = 900;
+const RUN       = 215;
+const ACCEL     = 2000;
+const FRICTION  = 2400;
+const JUMP_V    = -565;
+const COYOTE    = 0.09;
+const BUFFER    = 0.10;
+const GLIDE_FALL= 50;
+const GLIDE_RUN = 255;
+// He flies whichever way he's already pointed — the mouse doesn't steer him. What
+// it does is hold him up: cursor above his waist and he strains for it, spending a
+// two-second reserve before the sag sets in. The sag is exponential, so a flight
+// ends the way a paper plane does — level, level, level, gone. He never climbs,
+// which is what keeps him off Alien's wall and Billie's wall.
+const PLANE_RUN   = 335;
+const PLANE_SINK0 = 30;     // px/s at the start of a glide
+const PLANE_TAU   = 0.9;    // sink doubles about every 0.6s once the reserve is out
+const PLANE_LIFT  = 2.0;    // seconds of "trying", refilled on landing
+// Near-zero, not merely slow: at 30px/s he spent his whole altitude budget while
+// straining and the reserve only bought about one extra second instead of two.
+const PLANE_HOLD  = 4;
+const PLANE_DIVE  = 720;    // cursor below him — he puts the nose down and drops
+const PLANE_DEAD  = 8;      // deadzone around his waist so it doesn't flicker
+const DIG_SPEED = 135;
+// BARKmc's dash. It does 5 damage, which is nothing — its real job is the i-frames.
+const DASH_TIME = 0.17, DASH_SPEED = 640, DASH_CD = 0.40;
+const ORB_SPEED = 430;
+// ZOOMIES. Jump height goes with the SQUARE of takeoff speed, so 1.75x is already
+// 3x the height — 8 tiles, where Alien's big jump only manages 4.7.
+const ZOOM_TIME  = 45;
+const ZOOM_SPEED = 1.9;
+const ZOOM_JUMP  = 1.75;
+// Small horizontal kick on purpose: a big shove would mean you can only wall-jump
+// inside a shaft with two facing walls, and there aren't any. This way holding
+// toward the wall re-contacts it, so a single face can be climbed.
+const WALL_KICK  = 0.55;
+const WALL_GRACE = 0.12;
+
+// ───────────────────────────────────────────── the roster
+// Stats and abilities are lifted straight from the Doggo Battles wiki — ANormalName1's
+// canon, in menu order. `art` is set only where Adam has drawn something; everything
+// else is a placeholder vector doggo wearing a hat until his real art lands.
+// Drawn height per doggo, tuned so their BODIES match rather than their pictures.
+// Two earlier attempts both failed: scaling by image height shrank whoever wore a
+// hat, and scaling by nose-to-tail length made bodies equal on paper but not to the
+// eye. These numbers come from the area of each drawing's lower body — the part no
+// hat, crown or antenna touches — so a taller `dh` here means more of the picture is
+// headgear, not that the dog is bigger. Verified by lining them all up side by side.
+const DOG_H = 44;
+
+const CAST = [
+  // you. Xanboo78o's doggo, still wearing the collar he tore off.
+  { id:'barkmc', name:'BARKmc', col:'#f5a623', w:26, h:34, tag:'ADAM',
+    art:'BARKmc', bw:260, move:'dash',
+    atk:'5', spd:'Normal', ability:'Dash — E. A dodge that stings.',
+    note:'you · the one that got away' },
+  // rescued at the end of the bunker. Locked until then.
+  { id:'dalmatian', name:'Dalmatian Doggo', col:'#e9e9ee', hat:'spots', w:26, h:34, tag:'DB',
+    art:'Dalmatian-Doggo', bw:260, locked:true,
+    atk:'Normal', spd:'Normal', ability:'None', note:"#2 · Doggo's best friend" },
+];
+
+const byId = id => CAST.find(c => c.id === id);
+
+const IMG = {};
+CAST.forEach(c => [c.art, c.art2].filter(Boolean).forEach(n => {
+  if(IMG[n]) return;
+  const im = new Image();
+  im.onload = () => drawCardArt();
+  im.src = 'doggos/' + n + '.png';
+  IMG[n] = im;
+}));
+
+// Adam's four-frame coin: face, turning, nearly edge, edge.
+const COIN_IMG = [11,12,13,14].map(n => { const im = new Image(); im.src = 'doggos/coin'+n+'.png'; return im; });
+// A real spin is 360° and four frames only cover 90°, so run them out and back,
+// flipping horizontally after each edge-on step — that's where a coin's visible face
+// actually swaps. [frame, flipped, width multiplier].
+//
+// All four of Adam's frames are used. His edge frame is a 23px sliver, which is
+// three pixels at game scale, so it gets widened — enough to have thickness, not
+// so much that its straight sides read as a blocky bar.
+// Silhouette widths land on 27 / 22 / 14 / 8.
+const COIN_SEQ = [
+  [0,0,1.00], [1,0,1.05], [2,0,1.30], [3,0,3.00],
+  [2,1,1.30], [1,1,1.05], [0,1,1.00], [1,1,1.05],
+  [2,1,1.30], [3,1,3.00], [2,0,1.30], [1,0,1.05],
+];
+const COIN_H = 27;
+
+// Adam's five biome sheets. Each is a ground strip plus a set of floating-platform
+// blobs; every colour below was sampled out of his own art.
+const BASE_C = {
+  // WHITE CONCRETE AND QUARTZ. Somebody built this place nicely to keep dogs in it.
+  // Outline is a darker shade of the fill, never black — Adam's rule.
+  stone:'#f2f4f7', stoneLow:'#dbe0e7', stoneEdge:'#aeb6c2',
+  loose:'#b07c48', looseLow:'#8d6136', looseEdge:'#6f4c2a', crack:'#5e3f22',
+};
+// The bunker is an INTERIOR — no sky, no hills, no clouds. Everything is stone,
+// which here means poured concrete and bolted plate.
+const BIOMES = {
+  bunker: { plats:0, stripH:30, indoor:true, C:{
+    back:'#c9d2dc', backLow:'#aab6c4', seam:'#9aa7b6',      // the far wall, behind everything
+    led:'#eaf6ff', ledGlow:'#7fd4ff', ledAlert:'#ff4d54',   // high-quality strip lighting
+    earth:'#f2f4f7', earthLow:'#dbe0e7', earthEdge:'#aeb6c2',
+    under:'#c9d2dc', underMud:'#b6c2d0', grass:'#f2f4f7', grassEdge:'#aeb6c2' } },
+};
+const BIOME_NAMES = Object.keys(BIOMES);
+const TERRAIN_IMG = {};
+let biome = 'bunker';
+
+// ───────────────────────────────────────────── AREA 1 — THE BUNKER
+// '.' air   '#' solid plate   'K' kennel (Dalmatian's cell)   'R' robo door (chip)
+// 'P' cracked panel — only a laser breaks it     'L' doggo-locked door — the chip is useless
+// 'C' security shutter — opens when its room is clear         'w' water (you cannot swim)
+// 'e' empty doghouse (decor)   'v' vent grille (decor, a promise)   'G' the way up
+//
+// Seven rooms, ~10 minutes. Floor is row 18 throughout; the shaft at the end climbs out.
+const MAP_W = 216, MAP_H = 21;
+const grid = Array.from({length:MAP_H}, () => Array(MAP_W).fill('.'));
+const fill = (x,y,w,h,ch) => { for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++)
+  if(r>=0&&r<MAP_H&&c>=0&&c<MAP_W) grid[r][c]=ch; };
+const put = (x,y,ch) => fill(x,y,1,1,ch);
+
+fill(0,18,MAP_W,3,'#');            // the floor. walking surface = row 18
+fill(0,0,MAP_W,10,'#');            // the ceiling slab
+
+// ── 1 · THE CELL (x 2-11) — teaches move, jump, and that the chip opens doors
+fill(1,13,1,5,'#');                // back wall of your cell
+put(4,17,'e');                     // your own doghouse, the only one that was occupied
+fill(11,13,1,5,'R');               // cell door — walk into it and it opens. you are disguised.
+
+// ── 2 · THE CELL BLOCK (x 12-46) — teaches the premise with no cutscene
+fill(12,12,MAP_W-12,1,'.');        // corridors run 6 tiles tall from here on
+[15,20,25,31,37,42].forEach(x => { put(x,17,'e'); fill(x-1,13,1,5,'#'); });  // cells, all standing open
+fill(28,15,3,1,'#'); fill(34,13,3,1,'#');      // a couple of easy hops
+put(44,11,'v');                                // PROMISE: a vent, too high, too small
+
+// ── 3 · LASER-DOG (x 47-76) — the verb, in its simplest form: laser vs WALL
+fill(47,10,1,3,'#');               // room lip
+fill(56,16,4,1,'#');               // a block of cover mid-room
+fill(76,13,1,5,'P');               // CRACKED PANEL — his laser is the only thing that opens this
+
+// ── 4 · THE DISMANTLED ONE (x 77-116) — the turn. exposition, and both promises.
+fill(90,18,7,3,'w');               // PROMISE: the flooded stairwell → THE AQUADEPTHS
+fill(89,18,1,3,'#'); fill(97,18,1,3,'#');
+fill(103,15,3,1,'#');
+fill(112,13,1,5,'L');              // PROMISE: the doggo-locked door → DELETION DEPTHS HIGHWAY
+fill(113,13,3,5,'#');              // and the dead rock behind it
+
+// ── 5 · THE PATROL (x 117-150) — the verb again, escalated: robot vs ROBOT
+fill(117,10,1,3,'#');
+fill(126,16,3,1,'#');  fill(136,14,3,1,'#');   // ledges to break line of sight
+fill(150,13,1,5,'C');              // shutter — opens when this room is clear
+
+// ── 6 · THE GUARD ROOM (x 151-190) — the exam. three of them.
+fill(151,10,1,3,'#');
+fill(160,15,4,1,'#'); fill(172,16,3,1,'#'); fill(180,13,3,1,'#');
+put(168,9,'v');                    // PROMISE: a ceiling hatch
+fill(190,13,1,5,'C');              // Dalmatian's cell door — opens when the guards are down
+
+// ── 7 · DALMATIAN, AND UP (x 191-215)
+put(194,17,'K');                   // his cell. the roster goes from one to two.
+fill(199,18,1,3,'#');
+fill(200,16,4,1,'#'); fill(206,13,4,1,'#'); fill(200,10,4,1,'#');   // the shaft out
+fill(206,7,4,1,'#');  fill(200,4,4,1,'#');
+fill(198,0,MAP_W-198,4,'.');       // punch the ceiling open — daylight
+fill(204,1,4,1,'G');               // the way up, and out
+
+fill(0,0,1,MAP_H,'#'); fill(MAP_W-1,0,1,MAP_H,'#');
+
+// coins — hand-placed, one at a time, each somewhere worth the detour
+const COINS = [[6,16],[28,14],[34,12],[58,15],[85,17],[104,14],[137,13],[161,14],[181,12]]
+  .map(([c,r]) => ({ x:c*T + T/2, y:r*T + T/2, got:false, ph:(c*7 + r*3) % 12 }));
+let coinsGot = 0;
+
+
+const doors = [];
+for(let c=0;c<MAP_W;c++){
+  let run = null;
+  for(let r=0;r<MAP_H;r++){
+    const t = grid[r][c];
+    if(t==='R'||t==='C'){
+      if(!run || run.kind!==t){ run={c,r0:r,r1:r,open:false,kind:t}; doors.push(run); }
+      else run.r1=r;
+    }
+    else run = null;
+  }
+}
+const doorAt = (c,r) => doors.find(d => d.c===c && r>=d.r0 && r<=d.r1);
+let plasmaOpen = false;
+
+// Terrain is a tile grid for collision but must not LOOK like one. Merge runs of
+// tiles into as few big rectangles as possible, then draw those as one rounded
+// mass — Doggo Battles' chunky slabs, no grid seams.
+function mergeRects(pred){
+  const used = Array.from({length:MAP_H}, () => new Array(MAP_W).fill(false));
+  const out = [];
+  for(let r=0;r<MAP_H;r++) for(let c=0;c<MAP_W;c++){
+    if(used[r][c] || !pred(c,r)) continue;
+    let w = 1;
+    while(c+w < MAP_W && pred(c+w,r) && !used[r][c+w]) w++;
+    let h = 1;
+    grow: while(r+h < MAP_H){
+      for(let i=0;i<w;i++) if(!pred(c+i, r+h) || used[r+h][c+i]) break grow;
+      h++;
+    }
+    for(let rr=r;rr<r+h;rr++) for(let cc=c;cc<c+w;cc++) used[rr][cc] = true;
+    out.push({x:c*T, y:r*T, w:w*T, h:h*T});
+  }
+  return out;
+}
+const ROCK = mergeRects((c,r) => grid[r][c]==='#');
+const DIRT = mergeRects((c,r) => grid[r][c]==='d');
+// Indoors there is no ground line: every mass in here is poured plate, so it all
+// draws as 'stone'. (Outdoors this is the height test that splits wall from earth.)
+const SURFACE = MAP_H*T;
+ROCK.forEach(r => { r.platform = false; r.stone = true; r.grass = false; });
+
+// ───────────────────────────────────────────── player
+const player = {
+  char: byId('barkmc'), x: 4*T, y: 18*T-36, w:28, h:36, hp:100, hurt:0, dash:0, dashCd:0,
+  vx:0, vy:0, onGround:false, face:1, phase:0, coyote:0, buffer:0,
+  gliding:false, digging:false, peri:0,
+  zoom:0, wall:0, wallCoyote:0, trail:[],
+  thrusting:false, lifting:false, flightT:0, lift:PLANE_LIFT
+};
+const vapor = [];        // wingtip condensation
+const orbs = [];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENEMY AI  —  "thats like 90% of the game" (Adam)
+//
+// The premise: you are WEARING THE CHIP, so a robot that sees you walking
+// calmly just carries on. It is not blind — it has decided you are staff.
+// Suspicion is what you spend by acting like a dog: dashing, sprinting,
+// crowding them, standing somewhere you shouldn't be. One robot that works it
+// out SHOUTS, and the room turns.
+//
+// Your dash does 5 damage against 145 HP, so you never kill anything yourself.
+// You kill them with each other. The AI knows that — it checks for a buddy in
+// the firing line BEFORE it starts aiming, but never again before it fires.
+// That gap is the whole skill: it isn't a stupid robot, it's a slow one.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const DMG = {
+  laserPlayer: 12, laserRobo: 45,       // 145 HP  ≈ 4 friendly lasers
+  swingPlayer: 22, swingRobo: 60,       // 175 HP  ≈ 3 friendly swings
+  dashRobo:     5,                      // yours. 29 hits. it is a statement, not an attack.
+};
+
+const KINDS = {
+  cyclops: { art:'Robo-Doggo-Cyclops', hp:145, w:30, h:34, dh:46,
+             role:'ranged', speed:82, sight:760, fov:0.62, aimTime:0.95,
+             hold:230, fire:430, cool:1.5 },
+  patrol:  { art:'Robo-Doggo-V2',      hp:145, w:30, h:34, dh:44,
+             role:'ranged', speed:98, sight:560, fov:0.50, aimTime:0.72,
+             hold:170, fire:340, cool:1.15 },
+  brute:   { art:'heavyrobodoggo',     hp:175, w:38, h:38, dh:54,
+             role:'melee',  speed:122, sight:520, fov:0.70, wind:0.5,
+             reach:78, cool:1.25 },
+  scrapped:{ art:'Scrapped-Robo-Doggo', hp:1, w:32, h:34, dh:46,
+             role:'inert', speed:0, sight:0, fov:0, inert:true },
+};
+Object.values(KINDS).forEach(k => {
+  if(IMG[k.art]) return;
+  const im = new Image(); im.src = 'doggos/' + k.art + '.png'; IMG[k.art] = im;
+});
+
+const enemies = [];
+const lasers  = [];
+const sparks  = [];
+
+function spawn(kind, tx, ty, opt){
+  const K = KINDS[kind];
+  const e = {
+    kind, K, art:K.art, w:K.w, h:K.h, dh:K.dh, col:'#9aa3ad', bw:260,
+    x:tx*T, y:ty*T - K.h, vx:0, vy:0, face:-1, phase:0, onGround:true,
+    hp:K.hp, max:K.hp, dead:false,
+    state:'calm', sus:0, lost:0, look:0,           // perception
+    aim:0, cd:Math.random()*0.8, wind:0, swing:0,  // action timers
+    flash:0, shove:0, alertPop:0,
+    home:[(opt&&opt.x0!=null?opt.x0:tx-4)*T, (opt&&opt.x1!=null?opt.x1:tx+4)*T],
+    zone:(opt&&opt.zone) || null,
+  };
+  enemies.push(e); return e;
+}
+
+// ── line of sight. A robot cannot see through plate, a shut door, or the panel.
+const blocksSight = (c,r) => {
+  if(c<0||c>=MAP_W||r<0||r>=MAP_H) return true;
+  const t = grid[r][c];
+  if(t==='#'||t==='P'||t==='L') return true;
+  if(t==='R'||t==='C'){ const d = doorAt(c,r); return !(d && d.open); }
+  return false;
+};
+function clearLine(ax, ay, bx, by){
+  const dx = bx-ax, dy = by-ay;
+  const steps = Math.ceil(Math.hypot(dx,dy) / (T*0.5));
+  for(let i=1;i<steps;i++){
+    const x = ax + dx*i/steps, y = ay + dy*i/steps;
+    if(blocksSight((x/T)|0, (y/T)|0)) return false;
+  }
+  return true;
+}
+
+const eyeOf = e => ({ x: e.x + e.w/2, y: e.y + e.h*0.32 });
+const midOf = p => ({ x: p.x + p.w/2, y: p.y + p.h*0.45 });
+
+// ── PERCEPTION. Returns how fast this robot is losing faith in your disguise.
+function suspicionRate(e, dist){
+  const p = player;
+  // NEGATIVE means it is actively reassured. Walking calmly at a distance has to
+  // be sustainable forever, or you could never cross a room. You spend suspicion
+  // on purpose: crowd them, sprint, or dash.
+  let rate = -0.25;
+  const speed = Math.abs(p.vx);
+  if(p.dash > 0)            rate += 3.6;              // no robot dashes. this is the loud one.
+  else if(speed > RUN*0.62) rate += 1.25;             // running reads wrong
+  if(dist < 95)             rate += 1.75;             // close enough to smell that you are warm
+  else if(dist < 200)       rate += 0.32;
+  return rate > 0 ? rate * (1 - Math.min(0.5, dist/1300)) : rate;
+}
+
+function shout(src){
+  enemies.forEach(e => {
+    if(e === src || e.dead || e.K.inert) return;
+    if(Math.hypot(e.x-src.x, e.y-src.y) > 470) return;
+    if(!clearLine(eyeOf(e).x, eyeOf(e).y, eyeOf(src).x, eyeOf(src).y)) return;
+    if(e.state !== 'hunting'){ e.state = 'hunting'; e.sus = 1; e.alertPop = 0.9; e.lost = 0; }
+  });
+}
+
+function perceive(e, dt){
+  const eye = eyeOf(e), me = midOf(player);
+  const dx = me.x - eye.x, dy = me.y - eye.y;
+  const dist = Math.hypot(dx, dy);
+  const facing = Math.sign(dx) === e.face || Math.abs(dx) < 20;
+  const withinCone = Math.abs(dy) < Math.abs(dx)*e.K.fov + 70;
+
+  const sees = dist < e.K.sight && facing && withinCone &&
+               clearLine(eye.x, eye.y, me.x, me.y);
+  e.sees = sees;
+
+  if(sees) e.sus += suspicionRate(e, dist) * dt;
+  else     e.sus -= (e.state==='hunting' ? 0.16 : 0.62) * dt;
+  e.sus = Math.max(0, Math.min(1.35, e.sus));
+
+  if(e.state === 'hunting'){
+    e.lost = sees ? 0 : e.lost + dt;
+    if(e.lost > 6.5 && e.sus < 0.35){ e.state = 'suspicious'; e.lost = 0; }
+  } else if(e.sus >= 1){
+    e.state = 'hunting'; e.alertPop = 0.9; e.lost = 0; shout(e);
+    sfx('bark', 0.35);
+  } else if(e.sus >= 0.42){
+    e.state = 'suspicious';
+  } else if(e.sus < 0.12){
+    e.state = 'calm';
+  }
+  return dist;
+}
+
+// ── Would this shot hit one of ours? Checked when the robot DECIDES to aim.
+// It is not checked again when the trigger goes. That gap is the game.
+function friendInLine(e){
+  const eye = eyeOf(e), me = midOf(player);
+  const dir = Math.sign(me.x - eye.x) || e.face;
+  for(const o of enemies){
+    if(o === e || o.dead || o.K.inert) continue;
+    const ahead = (o.x + o.w/2 - eye.x) * dir;
+    if(ahead <= 0 || ahead > Math.abs(me.x - eye.x)) continue;
+    if(eye.y > o.y - 6 && eye.y < o.y + o.h + 6) return true;
+  }
+  return false;
+}
+
+function fire(e){
+  const eye = eyeOf(e), me = midOf(player);
+  const dir = Math.sign(me.x - eye.x) || e.face;
+  lasers.push({ x: eye.x + dir*e.w*0.55, y: eye.y, vx: dir*940, from:e, life:1.6 });
+  sfx('pop', 0.32);
+  e.cd = e.K.cool;
+}
+
+function hurtRobot(e, amount, src){
+  if(e.dead || e.K.inert) return;
+  e.hp -= amount; e.flash = 0.22;
+  // being shot by your own side is exactly as alerting as being shot by a dog
+  if(e.state !== 'hunting'){ e.state = 'hunting'; e.sus = 1; e.alertPop = 0.9; shout(e); }
+  if(e.hp <= 0){
+    e.hp = 0; e.dead = true; e.deadT = 0;
+    for(let i=0;i<16;i++) sparks.push({ x:e.x+e.w/2, y:e.y+e.h*0.5,
+      vx:(Math.random()-0.5)*300, vy:-Math.random()*260, life:0.5+Math.random()*0.4 });
+    sfx('pop', 0.6);
+  }
+}
+
+function hurtPlayer(amount, fromX){
+  if(player.hurt > 0 || player.dash > 0) return;      // dashing is a dodge. that is its job.
+  player.hp -= amount; player.hurt = 0.85;
+  player.vx = Math.sign(player.x + player.w/2 - fromX) * 250;
+  player.vy = -210;
+  if(player.hp <= 0){ player.hp = 0; killPlayer(); }
+}
+
+// ── The brute's swing. It hits EVERYTHING in the arc, which is the point.
+function swingHits(e){
+  const cx = e.x + e.w/2 + e.face*e.K.reach*0.55, cy = e.y + e.h*0.55;
+  const R = e.K.reach;
+  if(Math.hypot(player.x+player.w/2-cx, player.y+player.h/2-cy) < R)
+    hurtPlayer(DMG.swingPlayer, e.x+e.w/2);
+  enemies.forEach(o => {
+    if(o === e || o.dead || o.K.inert) return;
+    if(Math.hypot(o.x+o.w/2-cx, o.y+o.h/2-cy) < R) hurtRobot(o, DMG.swingRobo, e);
+  });
+  for(let i=0;i<7;i++) sparks.push({ x:cx, y:cy, vx:e.face*(90+Math.random()*220),
+    vy:(Math.random()-0.6)*220, life:0.3+Math.random()*0.25 });
+}
+
+function walkEnemy(e, dir, dt, mul){
+  const sp = e.K.speed * (mul||1);
+  e.vx = dir * sp;
+  if(dir) e.face = dir;
+  const nx = e.x + e.vx*dt;
+  // don't walk into plate, and don't walk off a ledge
+  const lead = nx + (dir>0 ? e.w+2 : -2);
+  const footR = ((e.y + e.h + 4)/T)|0, midR = ((e.y + e.h*0.5)/T)|0;
+  if(blocksSight((lead/T)|0, midR) || !blocksSight((lead/T)|0, footR)){ e.vx = 0; e.face = -dir || e.face; }
+  else e.x = nx;
+  e.phase += Math.abs(e.vx)*dt*0.05;
+}
+
+// ── the cracked panel. Only a laser opens it, and there is exactly one laser
+// source in that room: the thing trying to kill you.
+function breakPanel(c){
+  for(let r=0;r<MAP_H;r++) if(grid[r][c]==='P') grid[r][c]='.';
+  for(let n=0;n<26;n++) sparks.push({ x:c*T+T/2, y:(13+Math.random()*5)*T,
+    vx:(Math.random()-0.5)*420, vy:-Math.random()*320, life:0.6+Math.random()*0.5 });
+  sfx('pop', 0.8);
+  say('THE PANEL BLOWS OUT', 'Their weapons are the only weapons in here. Use theirs.');
+}
+
+// ── security shutters. They hold until every robot in their room is scrap.
+const SHUTTERS = [];
+function checkShutters(){
+  SHUTTERS.forEach(sh => {
+    if(sh.door.open) return;
+    const left = enemies.some(e => !e.dead && !e.K.inert &&
+                              e.x > sh.zone[0]*T && e.x < sh.zone[1]*T);
+    if(!left){ sh.door.open = true; sfx('pop', 0.7); say(sh.title, sh.text); }
+  });
+}
+
+function killPlayer(){
+  player.hp = 100; player.hurt = 1.2;
+  player.x = checkpoint.x; player.y = checkpoint.y; player.vx = 0; player.vy = 0;
+  enemies.forEach(e => { if(!e.dead){ e.state='calm'; e.sus=0; e.aim=0; e.wind=0; e.swing=0; } });
+  lasers.length = 0;
+  say('CAUGHT', 'They put you back. Nothing in here can be beaten by biting it.');
+}
+
+function updateEnemies(dt){
+  enemies.forEach(e => {
+    if(e.ghost == null) e.ghost = e.hp;
+    if(e.ghost > e.hp) e.ghost = Math.max(e.hp, e.ghost - dt*130);
+    if(e.flash > 0) e.flash -= dt;
+    if(e.alertPop > 0) e.alertPop -= dt;
+    if(e.dead){ e.deadT += dt; return; }
+    if(e.K.inert) return;
+
+    const dist = perceive(e, dt);
+    const me = midOf(player), eye = eyeOf(e);
+    if(e.cd > 0) e.cd -= dt;
+
+    if(e.state === 'calm'){
+      // a patrol walks its stretch; a guard holds its post and sweeps its head
+      e.aim = 0; e.wind = 0;
+      if(e.home[1] - e.home[0] > T*1.5){
+        if(e.x < e.home[0]) e.face = 1;
+        if(e.x + e.w > e.home[1]) e.face = -1;
+        walkEnemy(e, e.face, dt, 0.55);
+      } else {
+        e.look += dt;
+        if(e.look > 2.6){ e.look = 0; e.face = -e.face; }
+        e.vx = 0;
+      }
+      return;
+    }
+
+    if(e.state === 'suspicious'){
+      // turns toward you and stares. Doesn't shoot. This is your warning.
+      e.vx = 0; e.aim = 0; e.wind = 0;
+      const dir = Math.sign(me.x - eye.x);
+      if(dir) e.face = dir;
+      return;
+    }
+
+    // ── HUNTING
+    const dir = Math.sign(me.x - eye.x) || e.face;
+
+    if(e.K.role === 'melee'){
+      if(e.swing > 0){ e.swing -= dt; e.vx = 0; return; }
+      if(e.wind > 0){
+        e.wind -= dt; e.vx = 0; e.face = dir;
+        if(e.wind <= 0){ swingHits(e); e.swing = 0.28; e.cd = e.K.cool; }
+        return;
+      }
+      if(dist < e.K.reach*0.92 && e.cd <= 0){ e.wind = e.K.wind; e.vx = 0; return; }
+      walkEnemy(e, dir, dt, dist < e.K.reach*1.4 ? 0.7 : 1);
+      return;
+    }
+
+    // ── ranged: hold your distance, aim, fire.
+    if(e.aim > 0){
+      e.aim -= dt; e.vx = 0; e.face = dir;
+      // COMMITTED. It does not look again. Move a friend into the beam now and it eats it.
+      if(e.aim <= 0) fire(e);
+      return;
+    }
+    if(dist > e.K.hold*1.35)      walkEnemy(e, dir, dt);
+    else if(dist < e.K.hold*0.72) walkEnemy(e, -dir, dt, 0.8);
+    else { e.vx = 0; e.face = dir; }
+
+    // SEE far, ENGAGE close. If it opens up from across the map the beam spends
+    // most of a second in flight, and "step out of the line" stops being a dodge
+    // and becomes a hover. Firing range is deliberately much shorter than sight.
+    if(e.cd <= 0 && e.sees && dist < e.K.fire &&
+       Math.abs(me.y - eye.y) < 46 && !friendInLine(e))
+      e.aim = e.K.aimTime;                    // the one and only friendly-fire check
+  });
+
+  // ── lasers
+  for(let i=lasers.length-1;i>=0;i--){
+    const L = lasers[i];
+    const steps = 4, dx = L.vx*dt/steps;
+    let gone = false;
+    for(let k=0;k<steps && !gone;k++){
+      L.x += dx; L.life -= dt/steps;
+      const c = (L.x/T)|0, r = (L.y/T)|0;
+      if(L.life <= 0){ gone = true; break; }
+      // a cracked panel is the ONLY wall a laser opens
+      if(c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='P'){ breakPanel(c); gone = true; break; }
+      if(blocksSight(c,r)){
+        for(let n=0;n<6;n++) sparks.push({ x:L.x, y:L.y, vx:-Math.sign(L.vx)*(60+Math.random()*180),
+          vy:(Math.random()-0.5)*200, life:0.25+Math.random()*0.2 });
+        gone = true; break;
+      }
+      for(const o of enemies){                       // FRIENDLY FIRE
+        if(o === L.from || o.dead || o.K.inert) continue;
+        if(L.x > o.x && L.x < o.x+o.w && L.y > o.y && L.y < o.y+o.h){
+          hurtRobot(o, DMG.laserRobo, L.from); gone = true; break;
+        }
+      }
+      if(gone) break;
+      if(L.x > player.x && L.x < player.x+player.w &&
+         L.y > player.y && L.y < player.y+player.h){ hurtPlayer(DMG.laserPlayer, L.x); gone = true; }
+    }
+    if(gone) lasers.splice(i,1);
+  }
+
+  for(let i=sparks.length-1;i>=0;i--){
+    const s = sparks[i];
+    s.x += s.vx*dt; s.y += s.vy*dt; s.vy += 900*dt; s.life -= dt;
+    if(s.life <= 0) sparks.splice(i,1);
+  }
+
+  checkShutters();
+}
+
+
+function solidFor(ch, c, r){
+  if(c<0||c>=MAP_W||r<0||r>=MAP_H) return true;
+  const t = grid[r][c];
+  if(t==='#') return true;
+  if(t==='d') return ch.move !== 'dig';
+  if(t==='B') return !plasmaOpen;
+  if(t==='P') return true;                       // cracked panel — only a laser opens it
+  if(t==='L') return true;                       // a doggo locked this. the chip does nothing.
+  if(t==='C'){ const d = doorAt(c,r); return !(d && d.open); }   // shutter, opens on room clear
+  if(t==='R'){ const d = doorAt(c,r); return !(d && d.open); }
+  return false;                                  // w e v G are all walk-through
+}
+const isWater = (c,r) => c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='w';
+function inWater(p){
+  const c = ((p.x+p.w/2)/T)|0, r = ((p.y+p.h*0.75)/T)|0;
+  return isWater(c,r);
+}
+const isDirt = (c,r) => c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='d';
+
+function box(p){
+  return { c0:Math.floor(p.x/T), c1:Math.floor((p.x+p.w-1)/T),
+           r0:Math.floor(p.y/T), r1:Math.floor((p.y+p.h-1)/T) };
+}
+function overlapsDirt(p){
+  const {c0,c1,r0,r1} = box(p);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) if(isDirt(c,r)) return true;
+  return false;
+}
+function collide(axis){
+  const {c0,c1,r0,r1} = box(player);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+    if(!solidFor(player.char,c,r)) continue;
+    if(axis==='x'){
+      if(player.vx>0){ player.x = c*T - player.w; player.wall = 1; player.wallCoyote = WALL_GRACE; }
+      else if(player.vx<0){ player.x = (c+1)*T; player.wall = -1; player.wallCoyote = WALL_GRACE; }
+      player.vx = 0;
+    } else {
+      if(player.vy>0){ player.y = r*T - player.h; player.vy=0; player.onGround=true; }
+      else if(player.vy<0){ player.y = (r+1)*T; player.vy=0; }
+    }
+  }
+}
+function blocked(ch,x,y,w,h){
+  const c0=Math.floor(x/T), c1=Math.floor((x+w-1)/T);
+  const r0=Math.floor(y/T), r1=Math.floor((y+h-1)/T);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) if(solidFor(ch,c,r)) return true;
+  return false;
+}
+
+function becomeDoggo(ch){
+  const feet = player.y + player.h;
+  let ny = feet - ch.h, nx = player.x + (player.w - ch.w)/2;
+  if(blocked(ch,nx,ny,ch.w,ch.h)){
+    for(let k=1;k<=6;k++){ if(!blocked(ch,nx,ny-k*4,ch.w,ch.h)){ ny -= k*4; break; } }
+  }
+  const swapped = player.char !== ch;
+  player.char = ch; player.w = ch.w; player.h = ch.h;
+  player.x = nx; player.y = ny; player.vy = Math.min(player.vy,0); player.peri = 0;
+  if(swapped) sfx('bark', 0.5);
+  player.zoom = 0; player.trail.length = 0; player._zshown = -1;   // zoomies don't survive a swap
+  hudWho.textContent = ch.name;
+  hudMove.textContent = `atk ${ch.atk} · spd ${ch.spd} — ${ch.ability}`;
+}
+
+// ───────────────────────────────────────────── sound
+// The three short ones are Scratch's own library sounds, straight out of Doggo
+// Battles. Played through Audio elements, not fetch + decodeAudioData, because
+// fetch is blocked on file:// and this page gets opened by double-clicking it.
+function sfx(name, vol){
+  const a = new Audio('sfx/' + name + '.wav');
+  a.volume = vol; a.play().catch(() => {});
+}
+
+// ───────────────────────────────────────────── music
+// Original score, synthesised live — no files, nothing borrowed. The DB project's
+// music is other people's (Funkytown, Fortnite rips, stock trailer beds), so there
+// was nothing there to build a theme on.
+//
+// Notes are MIDI numbers; melody events are [startBeat, lengthInBeats, note].
+const SCORES = {
+  // THE DOGGO THEME. A minor, slow. The hook is the first two bars — a rising
+  // call that falls back down, like someone saying a dog's name across a field.
+  doggo: {
+    bpm: 70, len: 32, lead: 'triangle',
+    chords: [[57,60,64],[53,57,60],[48,52,55],[55,59,62],
+             [57,60,64],[53,57,60],[48,52,55],[55,59,62]],
+    bass:   [45,41,36,43,45,41,36,43],
+    mel: [[0,2,69],[2,1,72],[3,1,71],   [4,3,69],[7,1,67],
+          [8,1,67],[9,1,64],[10,2,67],  [12,2,62],[14,2,64],
+          [16,2,76],[18,1,74],[19,1,72],[20,3,72],[23,1,69],
+          [24,1,71],[25,1,67],[26,2,64],[28,4,62]],
+  },
+  // Underground and stone. D minor, slower, mostly silence.
+  deep: {
+    bpm: 58, len: 16, lead: 'sine',
+    chords: [[50,53,57],[46,50,53],[53,57,60],[45,49,52]],
+    bass:   [38,34,41,33],
+    mel: [[0,3,62],[3,1,65], [4,2,64],[6,2,62], [8,4,57], [12,2,60],[14,2,62]],
+  },
+  // Water and ash. E minor, floating, no real tune — just long tones drifting.
+  drift: {
+    bpm: 54, len: 16, lead: 'sine',
+    chords: [[52,55,59],[48,52,55],[57,60,64],[50,54,57]],
+    bass:   [40,36,45,38],
+    mel: [[0,4,64],[4,4,67],[8,4,69],[12,2,71],[14,2,67]],
+  },
+};
+const BIOME_TRACK = { grass:'doggo', rock:'deep', city:'deep', water:'drift', wildfire:'drift' };
+
+let actx = null, musBus = null, musOn = true, musTrack = null, musMeter = null;
+let beatCursor = 0, nextBeatAt = 0, musTimer = null;
+
+function initAudio(){
+  if(actx) return;
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  musBus = actx.createGain(); musBus.gain.value = 0;
+  const lp = actx.createBiquadFilter();          // takes the edge off — no chiptune buzz
+  lp.type = 'lowpass'; lp.frequency.value = 3200; lp.Q.value = 0.6;
+  const dly = actx.createDelay(1.0); dly.delayTime.value = 0.36;
+  const fb = actx.createGain(); fb.gain.value = 0.3;
+  const wet = actx.createGain(); wet.gain.value = 0.3;
+  // A limiter on the end so the whole thing can sit at a real listening level
+  // without the pad, bass and melody peaks stacking up into clipping.
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value = -12; comp.knee.value = 8;
+  comp.ratio.value = 6; comp.attack.value = 0.01; comp.release.value = 0.2;
+  musBus.connect(lp); lp.connect(comp);
+  lp.connect(dly); dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(comp);
+  musMeter = actx.createAnalyser(); musMeter.fftSize = 2048;
+  comp.connect(musMeter);
+  comp.connect(actx.destination);
+}
+const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+
+let noteCount = 0;
+function voice(t, midi, dur, peak, type, detune){
+  noteCount++;
+  const o = actx.createOscillator();
+  o.type = type; o.frequency.value = hz(midi); o.detune.value = detune || 0;
+  const g = actx.createGain();
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.07);          // soft attack, never a click
+  g.gain.setTargetAtTime(0.0001, t + dur * 0.6, dur * 0.3);
+  o.connect(g); g.connect(musBus);
+  o.start(t); o.stop(t + dur + 1.4);
+}
+
+function musicTick(){
+  if(!musTrack || !actx) return;
+  const s = SCORES[musTrack], spb = 60 / s.bpm;
+  while(nextBeatAt < actx.currentTime + 0.3){
+    const b = beatCursor % s.len, t = nextBeatAt;
+    if(b % 4 === 0){
+      const bar = (b / 4) | 0;
+      s.chords[bar].forEach((n, i) => {            // pad, two slightly detuned layers
+        voice(t, n, spb * 3.8, 0.055, 'sine', -6);
+        voice(t, n + 12, spb * 3.8, 0.026, 'sine', 6 + i * 3);
+      });
+      voice(t, s.bass[bar], spb * 3.6, 0.150, 'sine');
+      voice(t, s.bass[bar] + 12, spb * 3.6, 0.045, 'triangle');
+    }
+    s.mel.forEach(e => {
+      if(e[0] !== b) return;
+      voice(t, e[2], e[1] * spb, 0.190, s.lead, -4);   // two detuned copies = warmth
+      voice(t, e[2], e[1] * spb, 0.120, s.lead, 5);
+      voice(t, e[2] - 12, e[1] * spb, 0.045, 'sine');
+    });
+    beatCursor++; nextBeatAt += spb;
+  }
+}
+
+function startMusic(){
+  if(!musOn) return;
+  initAudio();
+  if(actx.state === 'suspended') actx.resume();
+  if(musTimer) return;
+  musTrack = BIOME_TRACK[biome] || 'doggo';
+  beatCursor = 0; nextBeatAt = actx.currentTime + 0.15;
+  musBus.gain.setTargetAtTime(1.0, actx.currentTime, 0.45);
+  musTimer = setInterval(musicTick, 30);
+}
+function musicForBiome(){
+  const want = BIOME_TRACK[biome] || 'doggo';
+  if(!musTimer || want === musTrack) { musTrack = want; return; }
+  musTrack = want; beatCursor = 0; nextBeatAt = actx.currentTime + 0.15;
+}
+function toggleMusic(){
+  musOn = !musOn;
+  if(musOn){ startMusic(); }
+  else {
+    if(musBus) musBus.gain.setTargetAtTime(0, actx.currentTime, 0.25);
+    clearInterval(musTimer); musTimer = null;
+  }
+  hudBiome.textContent = biome + (musOn ? '' : ' · muted');
+}
+
+// ───────────────────────────────────────────── input
+const keys = {};
+const held = { left:false, right:false, up:false, jump:false, use:false };
+// any real gesture anywhere unlocks audio, not just the on-screen buttons
+addEventListener('pointerdown', startMusic);
+
+// where Airplane Doggo is aiming. Canvas space; add ox/oy for world space.
+let mouseX = null, mouseY = null;
+addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  if(!r.width || !r.height) return;
+  mouseX = (e.clientX - r.left) / r.width  * VIEW_W;
+  mouseY = (e.clientY - r.top)  / r.height * VIEW_H;
+});
+addEventListener('keydown', e => {
+  startMusic();
+  if(e.code==='KeyM'){ toggleMusic(); return; }
+  if(keys[e.code]) return; keys[e.code] = true;
+  if(rosterOpen) rosterKey(e);
+  else if(e.code==='KeyE') action();
+  if(e.code==='KeyR') reset();
+  if(e.code==='KeyB' && !rosterOpen)
+    setBiome(BIOME_NAMES[(BIOME_NAMES.indexOf(biome)+1) % BIOME_NAMES.length]);
+  if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+const L = () => held.left  || keys.ArrowLeft  || keys.KeyA;
+const R = () => held.right || keys.ArrowRight || keys.KeyD;
+const U = () => held.up    || keys.ArrowUp    || keys.KeyW;
+const D = () => keys.ArrowDown || keys.KeyS;
+const J = () => held.jump  || keys.Space;      // up is for LOOKING, not jumping
+
+if(matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
+document.querySelectorAll('#pad button').forEach(b => {
+  const k = b.dataset.k;
+  const on  = e => { e.preventDefault(); startMusic();
+                     if(k==='use') action(); else held[k]=true; };
+  const off = e => { e.preventDefault(); if(k!=='use') held[k]=false; };
+  b.addEventListener('pointerdown',on); b.addEventListener('pointerup',off);
+  b.addEventListener('pointercancel',off); b.addEventListener('pointerleave',off);
+});
+
+// one action button: a kennel if you're standing at one, otherwise whatever this doggo does
+function action(){
+  if(rosterOpen) return;
+  if(nearKennel()) { openRoster(); return; }
+  if(player.char.move === 'dash' && player.dashCd <= 0){
+    player.dash = DASH_TIME; player.dashCd = DASH_CD;
+    player.vx = player.face * DASH_SPEED;
+    sfx('bark', 0.5);
+    // 5 damage. Anything you touch barely notices — but it DOES notice.
+    enemies.forEach(e => {
+      if(e.dead || e.K.inert) return;
+      if(Math.abs(e.x+e.w/2 - (player.x+player.w/2)) < 44 &&
+         Math.abs(e.y+e.h/2 - (player.y+player.h/2)) < 44) hurtRobot(e, DMG.dashRobo, null);
+    });
+  }
+}
+
+// ───────────────────────────────────────────── kennel + roster ui
+const rosterEl = document.getElementById('roster');
+const cardsEl  = document.getElementById('cards');
+const hudWho   = document.getElementById('who');
+const hudMove  = document.getElementById('move');
+const tipEl    = document.getElementById('tip');
+const hudCoins = document.getElementById('coins');
+const hudBiome = document.getElementById('biome');
+const bannerEl = document.getElementById('banner');
+const sayEl    = document.getElementById('say');
+const hpFill   = document.getElementById('hpf');
+let sayT = 0;
+function say(title, text){
+  sayEl.innerHTML = '<b>' + title + '</b>' + text;
+  sayEl.classList.add('on'); sayT = 5.0;
+}
+let rosterOpen = false, rosterSel = 0;
+const cardCtx = [];
+
+CAST.forEach((c,i) => {
+  const card = document.createElement('div');
+  card.className = 'card' + (c.locked ? ' lock' : '');
+  const cv = document.createElement('canvas'); cv.width = 100; cv.height = 62;
+  card.append(cv);
+  const b = document.createElement('b'); b.textContent = c.name;
+  const st = document.createElement('div'); st.className = 'stat';
+  st.textContent = `${c.atk} · ${c.spd}`;
+  const ab = document.createElement('span'); ab.className = 'abil'; ab.textContent = c.ability;
+  const nt = document.createElement('span'); nt.className = 'note';
+  nt.textContent = `${c.tag} — ${c.note}`;
+  card.append(b,st,ab,nt);
+  card.addEventListener('click', () => { rosterSel = i; pickRoster(); });
+  card.addEventListener('mouseenter', () => { rosterSel = i; drawRoster(); });
+  cardsEl.append(card);
+  cardCtx.push({g: cv.getContext('2d'), c});
+});
+function drawCardArt(){
+  cardCtx.forEach(({g,c}) => {
+    g.clearRect(0,0,100,62);
+    if(c.art){
+      const im = IMG[c.art];
+      if(!(im && im.complete && im.naturalWidth)) return;
+      drawDog(g, 50-c.w/2, 58-c.h, c, 1, 0, {dh:50, moving:false});   // cards: uniform
+    }
+    else {
+      g.save(); g.translate(50 - c.w*1.25/2, 57 - c.h*1.25);
+      g.scale(1.25,1.25); drawDog(g, 0, 0, c, 1, 0, {moving:false}); g.restore();
+    }
+  });
+}
+function rebuildCards(){
+  [...cardsEl.children].forEach((el,i) => el.classList.toggle('lock', !!CAST[i].locked));
+}
+function drawRoster(){
+  [...cardsEl.children].forEach((el,i) => {
+    const on = i===rosterSel;
+    el.classList.toggle('sel', on);
+    if(on) el.scrollIntoView({block:'nearest'});
+  });
+}
+function openRoster(){
+  rosterOpen = true; rosterSel = Math.max(0, CAST.indexOf(player.char));
+  sfx('pop', 0.5);
+  rosterEl.classList.add('on'); drawRoster();
+}
+function closeRoster(){ rosterOpen = false; rosterEl.classList.remove('on'); }
+function pickRoster(){
+  const c = CAST[rosterSel];
+  if(c.locked) return;             // nobody gets Qorvex yet
+  becomeDoggo(c); closeRoster();
+}
+function perRow(){
+  return Math.max(1, Math.floor(cardsEl.clientWidth / (cardsEl.children[0].offsetWidth + 9)));
+}
+function rosterKey(e){
+  const n = CAST.length, k = perRow();
+  if(e.code==='ArrowLeft'){ rosterSel = (rosterSel+n-1)%n; drawRoster(); }
+  if(e.code==='ArrowRight'){ rosterSel = (rosterSel+1)%n; drawRoster(); }
+  if(e.code==='ArrowUp'){ rosterSel = (rosterSel-k+n)%n; drawRoster(); }
+  if(e.code==='ArrowDown'){ rosterSel = (rosterSel+k)%n; drawRoster(); }
+  if(e.code==='Enter'||e.code==='KeyE'||e.code==='Space') pickRoster();
+  if(e.code==='Escape') closeRoster();
+}
+function nearKennel(){
+  const cx = (player.x+player.w/2)/T, cy = (player.y+player.h/2)/T;
+  for(let r=0;r<MAP_H;r++) for(let c=0;c<MAP_W;c++)
+    if(grid[r][c]==='K' && Math.abs(c+0.5-cx)<1.4 && Math.abs(r+1-cy)<2) return {c,r};
+  return null;
+}
+
+function reset(){
+  doors.forEach(d => d.open = false);
+  plasmaOpen = false; orbs.length = 0; vapor.length = 0;
+  COINS.forEach(c => c.got = false);
+  coinsGot = 0; hudCoins.textContent = `0 / ${COINS.length} coins`;
+  player.x = 4*T; player.vx = 0; player.vy = 0;
+  becomeDoggo(byId('barkmc'));
+  player.y = 18*T - player.h;
+  player.hp = 100; player.hurt = 0; player.dash = 0; player.dashCd = 0;
+  byId('dalmatian').locked = true; rebuildCards();
+  enemies.length = 0; lasers.length = 0; sparks.length = 0;
+  buildEnemies();
+  SHUTTERS.forEach(sh => sh.door.open = false);
+  PANEL_COLS.forEach(c => { for(let r=13;r<18;r++) if(grid[r][c]==='.') grid[r][c]='P'; });
+  checkpoint = { x:4*T, y:18*T-36 };
+  seen.clear();
+  bannerEl.classList.remove('on'); cleared = false;
+}
+
+// ═════════════════════ WHO IS STANDING WHERE ═════════════════════
+const PANEL_COLS = [76];
+const seen = new Set();          // one-shot story beats, so they don't re-fire
+
+let SCRAP = null;
+function buildEnemies(){
+  // Room 3 — one Cyclops and a cracked panel. The whole verb, taught with one robot.
+  spawn('cyclops', 53, 18, {x0:50, x1:62});
+
+  // Room 4 — the dismantled one. It cannot move. It only talks.
+  SCRAP = spawn('scrapped', 81, 18);
+
+  // Room 5 — a Cyclops and a brute. Now you line THEM up on each other.
+  spawn('cyclops', 124, 18, {x0:120, x1:132});
+  spawn('brute',   141, 18, {x0:138, x1:147});
+
+  // Room 6 — the exam. Three of them, two firing lines.
+  spawn('cyclops', 157, 18, {x0:154, x1:166});
+  spawn('brute',   170, 18, {x0:167, x1:176});
+  spawn('cyclops', 184, 18, {x0:180, x1:188});
+}
+buildEnemies();
+
+SHUTTERS.push(
+  { door: doorAt(150,15), zone:[117,149],
+    title:'ROOM CLEAR', text:'The shutter releases. They only guard what is still standing.' },
+  { door: doorAt(190,15), zone:[151,189],
+    title:'THE CELL RELEASES', text:'Something is moving in there.' },
+);
+
+// checkpoints — the start of each room you can die in
+const CHECKS = [[4,18],[48,18],[78,18],[118,18],[152,18],[192,18]];
+let checkpoint = { x:4*T, y:18*T-36 };
+
+// ── the beats that fire once, when you walk into them
+function storyBeats(dt){
+  const tx = (player.x + player.w/2) / T;
+  const once = (key, fn) => { if(!seen.has(key)){ seen.add(key); fn(); } };
+
+  for(const [c,r] of CHECKS) if(player.x > c*T - 40) checkpoint = { x:c*T, y:r*T-36 };
+
+  if(tx > 12 && tx < 14) once('block', () => say('THE CELL BLOCK',
+    'Every door is already open. Every doghouse is already empty. You are the last one in here.'));
+  if(tx > 48 && tx < 50) once('cyc', () => say('IT DOES NOT LOOK UP',
+    'The chip is holding — walk calmly and it leaves you alone. Crowd it, sprint, or DASH and it works you out. ' +
+    'The way on is the cracked wall at the far end, and you cannot break it. It can.'));
+  if(tx > 79 && tx < 83) once('scrap', () => say('THE DISMANTLED ONE',
+    '"...unit. unit. they took them UP. all of them, up, to ALPHA. you are not on the manifest. why are you not on the—"'));
+  if(tx > 88 && tx < 99 && !seen.has('water') && inWater(player))
+    once('water', () => say('THE FLOODED STAIRWELL',
+      'It goes down a long way. Something in the dark below is still running lights. THE AQUADEPTHS. Not today — you cannot swim.'));
+  if(tx > 110 && tx < 113) once('door', () => say('THE CHIP DOES NOTHING',
+    'No reader. No panel. This was bolted shut from the other side by something with paws. DELETION DEPTHS HIGHWAY.'));
+  if(tx > 118 && tx < 120) once('patrol', () => say('TWO OF THEM',
+    'A gun and a fist. Stand so the gun is looking through the fist.'));
+  if(tx > 152 && tx < 154) once('guard', () => say('THE GUARD ROOM',
+    'Three. Four hundred and thirty-five between them, and five damage in your teeth. Not your fight — theirs.'));
+}
+
+// ───────────────────────────────────────────── update
+let cleared = false, spin = 0;
+function update(dt){
+  if(sayT > 0){ sayT -= dt; if(sayT <= 0) sayEl.classList.remove('on'); }
+  if(rosterOpen) return;
+  const ch = player.char;
+  player.digging = ch.move==='dig' && overlapsDirt(player);
+
+  // ── bunker timers
+  if(player.hurt   > 0) player.hurt   -= dt;
+  if(player.dashCd > 0) player.dashCd -= dt;
+  if(player.dash   > 0){
+    player.dash -= dt;
+    player.vx = player.face * DASH_SPEED;      // committed, straight, and brief
+  }
+  updateEnemies(dt);
+  storyBeats(dt);
+  hpFill.style.width = Math.max(0, player.hp) + '%';
+  hpFill.style.background = player.hp > 55 ? '#3ddc84' : player.hp > 25 ? '#ffc93c' : '#e63946';
+
+  if(player.digging){
+    const ix = (R()?1:0) - (L()?1:0);
+    const iy = (D()?1:0) - (U()||J()?1:0);
+    player.vx = ix*DIG_SPEED; player.vy = iy*DIG_SPEED || 40;
+    if(ix) player.face = ix;
+    player.gliding = false;
+  } else {
+    const ix = (R()?1:0) - (L()?1:0);
+    if(ix){
+      // Turning gets full bite, so a doggo that takes a while to WIND UP still
+      // answers the stick immediately — that's the difference between "heavy" and
+      // "slippery".
+      const turning = ix * player.vx < 0;
+      player.vx += ix * ACCEL * (ch.accelMul || 1) * (turning ? 2.8 : 1) * dt;
+      player.face = ix;
+    } else {
+      const f = FRICTION * (ch.frictionMul || 1) * dt;
+      player.vx = Math.abs(player.vx) <= f ? 0 : player.vx - Math.sign(player.vx)*f;
+    }
+    const zooming = player.zoom > 0;
+    const flying  = ch.move==='glide' && !player.onGround && player.vy > 0 && J();
+    const base = RUN * (ch.speedMul || 1) * (zooming ? ZOOM_SPEED : 1);
+    const cap  = flying ? PLANE_RUN : base;
+    player.vx = Math.max(-cap, Math.min(cap, player.vx));
+
+    if(player.onGround){ player.coyote = COYOTE; player.wallCoyote = 0; }
+    else player.coyote -= dt;
+    player.wallCoyote -= dt;
+    if(J() && !keys._jheld) player.buffer = BUFFER; else player.buffer -= dt;
+    keys._jheld = J();
+
+    const jm = (ch.jumpMul || 1) * (zooming ? ZOOM_JUMP : 1);
+    if(player.buffer>0 && player.coyote>0){
+      player.vy = JUMP_V * jm;
+      player.buffer = 0; player.coyote = 0; player.onGround = false;
+    } else if(zooming && player.buffer>0 && player.wallCoyote>0 && player.wall){
+      player.vy = JUMP_V * jm * 0.92;              // wall kick, away from the wall
+      player.vx = -player.wall * RUN * ZOOM_SPEED * WALL_KICK;
+      player.face = Math.sign(player.vx);
+      player.buffer = 0; player.wallCoyote = 0;
+    }
+    const cut = -170 * jm;
+    if(player.vy < cut && !J()) player.vy = cut;
+
+    if(player.onGround){ player.flightT = 0; player.lift = PLANE_LIFT; }
+    player.gliding = player.thrusting = flying;
+    if(flying){
+      const waist = player.y + player.h*0.5;
+      const my = mouseY === null ? waist : mouseY + oy;
+      const above = my < waist - PLANE_DEAD, below = my > waist + PLANE_DEAD;
+      player.lifting = above && player.lift > 0;
+      player.diving  = below;
+      if(player.lifting) player.lift -= dt; else player.flightT += dt;
+      const sink = player.diving  ? PLANE_DIVE
+                 : player.lifting ? PLANE_HOLD
+                 : Math.min(MAX_FALL, PLANE_SINK0 * Math.exp(player.flightT / PLANE_TAU));
+      player.vy += (sink - player.vy) * Math.min(1, (player.diving ? 14 : 9)*dt);
+    } else {
+      player.lifting = player.diving = false;
+      player.vy += GRAV*dt;
+      player.vy = Math.min(player.vy, MAX_FALL);
+    }
+  }
+
+  player.onGround = false;
+  player.x += player.vx*dt; collide('x');
+  player.y += player.vy*dt; collide('y');
+
+  // the chip: robo doors just open for whoever is wearing one, and stay open
+  if(ch.move==='chip'){
+    const c0=Math.floor((player.x-6)/T), c1=Math.floor((player.x+player.w+5)/T);
+    const r0=Math.floor(player.y/T), r1=Math.floor((player.y+player.h-1)/T);
+    for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
+      const d = doorAt(c,r); if(d && !d.open){ d.open = true; d.t = 0; }
+    }
+  }
+  doors.forEach(d => { if(d.open) d.t = Math.min(1, (d.t||0) + dt*3); });
+
+  // plasma orbs
+  for(let i=orbs.length-1;i>=0;i--){
+    const o = orbs[i];
+    o.x += o.vx*dt; o.life -= dt;
+    const c = Math.floor(o.x/T), r = Math.floor(o.y/T);
+    const t = (c>=0&&c<MAP_W&&r>=0&&r<MAP_H) ? grid[r][c] : '#';
+    if(t==='S'){ plasmaOpen = true; orbs.splice(i,1); continue; }
+    const hard = t==='#' || t==='d' || (t==='B' && !plasmaOpen) ||
+                 (t==='R' && !(doorAt(c,r)||{}).open);
+    if(hard || o.life<=0) orbs.splice(i,1);
+  }
+
+  // periscope — coyote, not onGround: standing still makes onGround flicker frame to frame
+  const wantPeri = ch.move==='look' && player.coyote > 0 && Math.abs(player.vx) < 12 && U();
+  player.peri = Math.max(0, Math.min(1, player.peri + (wantPeri ? dt*2.2 : -dt*3.2)));
+
+  if(player.zoom > 0){
+    player.zoom = Math.max(0, player.zoom - dt);
+    player.trail.unshift({x:player.x, y:player.y, f:player.face});
+    if(player.trail.length > 7) player.trail.pop();
+    const left = Math.ceil(player.zoom);
+    if(left !== player._zshown){
+      player._zshown = left;
+      hudMove.textContent = left ? `ZOOMIES — ${left}s` : ch.blurbCache || ch.ability;
+    }
+    if(player.zoom === 0){
+      player.trail.length = 0;
+      hudMove.textContent = `atk ${ch.atk} · spd ${ch.spd} — ${ch.ability}`;
+    }
+  } else if(player.trail.length) player.trail.length = 0;
+
+  // wingtip condensation — spawn off the back of the wing while the engine is lit,
+  // then let each puff drift, swell and thin out
+  if(player.thrusting){
+    const tipX = player.x + (player.face > 0 ? 2 : player.w - 2);
+    const tipY = player.y + player.h*0.72;
+    for(let i=0;i<(player.lifting?3:2);i++)      // denser while he's straining
+      vapor.push({ x: tipX, y: tipY + (i?5:-3),
+                   vx: -player.face*(40 + Math.random()*50) + player.vx*0.12,
+                   vy: -14 - Math.random()*22,
+                   t: 0, life: 0.55 + Math.random()*0.35 });
+  }
+  for(let i=vapor.length-1;i>=0;i--){
+    const p = vapor[i];
+    p.t += dt; p.x += p.vx*dt; p.y += p.vy*dt; p.vx *= 0.94; p.vy *= 0.96;
+    if(p.t >= p.life) vapor.splice(i,1);
+  }
+
+  // You cannot swim. You bob on the surface of the stairwell and go no further down.
+  if(inWater(player)){
+    player.vy = Math.min(player.vy, 0) - 240*dt;
+    player.vx *= 0.86;
+    if(player.y + player.h > 18*T + 10) player.y = 18*T + 10 - player.h;
+  }
+
+  spin += dt*11;
+  COINS.forEach(c => {
+    if(c.got) return;
+    if(player.x < c.x+13 && player.x+player.w > c.x-13 &&
+       player.y < c.y+15 && player.y+player.h > c.y-15){
+      c.got = true; coinsGot++; sfx('coin', 0.35);
+      hudCoins.textContent = `${coinsGot} / ${COINS.length} coins`;
+    }
+  });
+
+  player.phase += Math.abs(player.vx)*dt*0.06;
+
+  // ── DALMATIAN. The roster goes from one to two.
+  if(!seen.has('dal') && Math.abs(player.x - 194*T) < 2*T && player.y > 15*T){
+    seen.add('dal');
+    byId('dalmatian').locked = false; rebuildCards();
+    sfx('bark', 0.9);
+    say('DALMATIAN', 'He has been in there the whole time. He wants to know where Doggo is. ' +
+        'Press E at his kennel — the roster is two now.');
+  }
+
+  const gx = 204*T, gy = 1*T;
+  if(!cleared && player.x+player.w > gx && player.x < gx+4*T &&
+     player.y+player.h > gy && player.y < gy+2*T){
+    cleared = true; bannerEl.classList.add('on');
+  }
+
+  const k = nearKennel();
+  tipEl.classList.toggle('hot', !!k);
+  tipEl.textContent = k ? 'KENNEL — press E to change doggo'
+    : (document.body.classList.contains('touch')
+        ? '← → move · ↑ look · JUMP · E dash'
+        : '← → / A D move · Space jump · ↑ look · E DASH · M music · R restart');
+}
+
+// ───────────────────────────────────────────── drawing
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+function fitCanvas(){
+  const wrap = document.getElementById('wrap');
+  const s = Math.min(wrap.clientWidth/VIEW_W, wrap.clientHeight/VIEW_H);
+  const dpr = Math.min(2, devicePixelRatio||1);
+  cv.width = Math.round(VIEW_W*s*dpr); cv.height = Math.round(VIEW_H*s*dpr);
+  cv.style.width = (VIEW_W*s)+'px'; cv.style.height = (VIEW_H*s)+'px';
+  ctx.setTransform(s*dpr,0,0,s*dpr,0,0);
+}
+addEventListener('resize', fitCanvas);
+
+function rr(g,x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  g.beginPath();
+  g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r);
+  g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath();
+}
+function shade(hex,amt){
+  const n = parseInt(hex.slice(1),16);
+  const cl = v => Math.max(0,Math.min(255,v));
+  return '#'+[(n>>16)+amt,((n>>8)&255)+amt,(n&255)+amt]
+    .map(v=>cl(v).toString(16).padStart(2,'0')).join('');
+}
+
+// Adam's art if this doggo has any, otherwise a placeholder vector doggo in a hat.
+function drawDog(g,x,y,ch,face,phase,st){
+  // Qorvex carries a second, torn-up drawing — flick to it now and then so he
+  // never quite holds still.
+  const key = (ch.art2 && Math.floor(spin*2.4) % 11 === 0) ? ch.art2 : ch.art;
+  const img = key && IMG[key];
+  if(img && img.complete && img.naturalWidth){
+    const dh = st.dh || ch.dh || DOG_H;
+    const s  = dh / img.naturalHeight;
+    const dw = img.naturalWidth * s;
+    const moving = !!st.moving;
+    const bob  = moving ? Math.abs(Math.sin(phase*2))*2.2 : 0;
+    const tilt = st.gliding ? 0                    // stays dead level in the air
+               : (moving ? Math.sin(phase)*0.045 : 0);
+    g.save();
+    g.translate(x + ch.w/2, y + ch.h);
+    g.rotate(tilt*(face<0?-1:1));
+    g.scale(face<0?-1:1, 1);
+    const N = ch.neck;
+    if(N && st.peri > 0.01){
+      const iw = img.naturalWidth, ih = img.naturalHeight, s = dh/ih;
+      const hSrc = N.head*ih, nSrc = (N.body-N.head)*ih, bSrc = (1-N.body)*ih;
+      const ext = st.peri * dh * 0.7;
+      const bTop = -bSrc*s, nTop = bTop - nSrc*s - ext, hTop = nTop - hSrc*s;
+      g.drawImage(img, 0, N.body*ih, iw, bSrc, -dw/2, bTop, dw, bSrc*s);
+      g.drawImage(img, 0, N.head*ih, iw, nSrc, -dw/2, nTop, dw, nSrc*s + ext);
+      g.drawImage(img, 0, 0,         iw, hSrc, -dw/2, hTop, dw, hSrc*s);
+    } else {
+      g.drawImage(img, -dw/2, -dh + bob, dw, dh);
+    }
+    g.restore();
+    return;
+  }
+
+  const w = ch.w, h = ch.h, col = ch.col;
+  const bodyH = h*0.70, legTop = y + bodyH;
+  const swing = Math.sin(phase)*Math.min(5, w*0.22);
+  const dark = shade(col,-45);
+
+  g.strokeStyle = dark; g.lineWidth = Math.max(3, w*0.14); g.lineCap = 'round';
+  g.beginPath();
+  g.moveTo(x+w*0.30+swing, legTop-1); g.lineTo(x+w*0.30+swing*0.4, y+h-1);
+  g.moveTo(x+w*0.70-swing, legTop-1); g.lineTo(x+w*0.70-swing*0.4, y+h-1);
+  g.stroke();
+
+  g.strokeStyle = col; g.lineWidth = Math.max(3, w*0.13);
+  g.beginPath();
+  const tx = face>0 ? x : x+w;
+  g.moveTo(tx, y+bodyH*0.45);
+  g.quadraticCurveTo(tx-face*w*0.28, y+bodyH*0.30, tx-face*w*0.22, y+bodyH*0.02);
+  g.stroke();
+
+  g.fillStyle = dark;
+  if(st.gliding){
+    g.beginPath();
+    g.moveTo(x+w*0.18, y+bodyH*0.22);
+    g.lineTo(x-w*0.55, y+bodyH*0.02); g.lineTo(x+w*0.20, y+bodyH*0.50); g.fill();
+    g.beginPath();
+    g.moveTo(x+w*0.82, y+bodyH*0.22);
+    g.lineTo(x+w*1.55, y+bodyH*0.02); g.lineTo(x+w*0.80, y+bodyH*0.50); g.fill();
+  } else {
+    g.beginPath();
+    g.moveTo(x+w*0.20, y+bodyH*0.30); g.lineTo(x+w*0.10, y-bodyH*0.22);
+    g.lineTo(x+w*0.46, y+bodyH*0.12); g.fill();
+    g.beginPath();
+    g.moveTo(x+w*0.80, y+bodyH*0.30); g.lineTo(x+w*0.90, y-bodyH*0.22);
+    g.lineTo(x+w*0.54, y+bodyH*0.12); g.fill();
+  }
+
+  g.fillStyle = col; rr(g,x,y,w,bodyH,Math.min(w,bodyH)*0.42); g.fill();
+
+  if(ch.hat === 'spots'){
+    g.fillStyle = '#2c2a33';
+    [[0.28,0.30,0.11],[0.62,0.52,0.09],[0.44,0.72,0.07]].forEach(([a,b,r])=>{
+      g.beginPath(); g.arc(x+w*a, y+bodyH*b, w*r, 0, 7); g.fill();
+    });
+  }
+
+  g.fillStyle = shade(col,22);
+  const sx = face>0 ? x+w*0.58 : x+w*0.06;
+  rr(g,sx,y+bodyH*0.46,w*0.36,bodyH*0.34,bodyH*0.16); g.fill();
+  g.fillStyle = '#241f3d';
+  g.beginPath();
+  g.arc(face>0 ? sx+w*0.30 : sx+w*0.06, y+bodyH*0.60, Math.max(1.6,w*0.065), 0, 7); g.fill();
+
+  const ex = face>0 ? x+w*0.56 : x+w*0.44;
+  if(ch.hat === 'shades'){
+    g.fillStyle = '#1b1830';
+    rr(g, x+w*0.34, y+bodyH*0.20, w*0.52, bodyH*0.20, 3); g.fill();
+  } else {
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(ex, y+bodyH*0.30, Math.max(2.6,w*0.13), 0, 7); g.fill();
+    g.fillStyle = '#1b1830';
+    g.beginPath(); g.arc(ex+face*w*0.035, y+bodyH*0.31, Math.max(1.4,w*0.065), 0, 7); g.fill();
+  }
+
+  const hx = x+w*0.5, hy = y - bodyH*0.06;
+  switch(ch.hat){
+    case 'cowboy':
+      g.fillStyle = '#7a4a24';
+      rr(g, x-w*0.16, hy-2, w*1.32, 5, 2.5); g.fill();
+      rr(g, x+w*0.24, hy-11, w*0.52, 11, 3); g.fill();
+      break;
+    case 'crown':
+      g.fillStyle = '#ffd75e';
+      g.beginPath();
+      g.moveTo(x+w*0.22, hy); g.lineTo(x+w*0.22, hy-9); g.lineTo(x+w*0.36, hy-4);
+      g.lineTo(x+w*0.50, hy-12); g.lineTo(x+w*0.64, hy-4); g.lineTo(x+w*0.78, hy-9);
+      g.lineTo(x+w*0.78, hy); g.closePath(); g.fill();
+      break;
+    case 'helm':
+      g.fillStyle = '#c3cad8';
+      rr(g, x+w*0.16, hy-11, w*0.68, 14, 5); g.fill();
+      g.fillStyle = '#3a4152';
+      rr(g, x+w*0.20, hy-4, w*0.60, 3.5, 1.5); g.fill();
+      break;
+    case 'antenna':
+      g.strokeStyle = shade(col,-55); g.lineWidth = 2.4;
+      g.beginPath(); g.moveTo(hx, hy); g.lineTo(hx+3, hy-12); g.stroke();
+      g.fillStyle = '#ff4d6d';
+      g.beginPath(); g.arc(hx+3, hy-14, 3.4, 0, 7); g.fill();
+      break;
+    case 'party':
+      g.fillStyle = '#4cc9f0';
+      g.beginPath();
+      g.moveTo(x+w*0.34, hy); g.lineTo(x+w*0.62, hy); g.lineTo(x+w*0.46, hy-15);
+      g.closePath(); g.fill();
+      g.fillStyle = '#ffd166';
+      g.beginPath(); g.arc(x+w*0.46, hy-16, 2.6, 0, 7); g.fill();
+      break;
+  }
+}
+
+// Two passes so the whole mass reads as one shape: every rect fattened and drawn
+// in the dark shade first, then every rect drawn in its gradient on top. Abutting
+// rects overlap by PAD*2 so no seam or corner notch survives, and the only dark
+// left showing is the outline around the outside — a darker version of the fill,
+// never black.
+const PAD = 2, OUT = 10, GRASS_H = 15;
+let C = { ...BASE_C, ...BIOMES[biome].C };
+function setBiome(name){
+  biome = name;
+  C = { ...BASE_C, ...BIOMES[name].C };
+  hudBiome.textContent = name + (musOn ? '' : ' · muted');
+  musicForBiome();
+}
+const radOf = r => 8 + ((r.x*7 + r.y*13) % 5) * 1.6;
+
+// deterministic in WORLD space so the squiggle doesn't crawl when the camera moves
+function droop(wx){
+  return Math.sin(wx*0.13)*2.4 + Math.sin(wx*0.041 + 1.7)*3.4 + Math.sin(wx*0.0071 + 0.4)*2.6
+       + Math.pow(Math.max(0, Math.sin(wx*0.023 + 2.2)), 7) * 15;
+}
+const hash = (a,b) => { const s = Math.sin(a*12.9898 + b*78.233)*43758.5453; return s - Math.floor(s); };
+
+// Seed and place textures in WORLD space, then subtract the camera. Seeding from
+// screen coords re-rolls the noise every pixel of scroll and the ground boils.
+function blobs(wx, wy, w, h, n, col, rmin, rmax){
+  ctx.fillStyle = col;
+  for(let i=0;i<n;i++){
+    const bx = wx + hash(i, wy)*w, by = wy + hash(i+91, wx)*h;
+    const rad = rmin + hash(i+37, wy+i)*(rmax-rmin);
+    ctx.beginPath();
+    ctx.ellipse(bx-ox, by-oy, rad, rad*(0.6 + hash(i+7,wx)*0.5), hash(i,i)*3, 0, 7);
+    ctx.fill();
+  }
+}
+
+// subtle cracks and # marks, world-anchored
+function stoneMarks(r){
+  // Poured concrete, not cave rock: cast lines, a soft top light, and the odd
+  // bolt. World-seeded, so it can't boil when the camera moves.
+  ctx.save();
+  const g = ctx.createLinearGradient(0, r.y-oy, 0, r.y-oy + Math.min(r.h, 90));
+  g.addColorStop(0, 'rgba(255,255,255,.55)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(r.x-ox, r.y-oy, r.w, Math.min(r.h, 90));
+
+  ctx.strokeStyle = 'rgba(120,132,148,.30)'; ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  for(let y = Math.ceil(r.y/96)*96; y < r.y + r.h; y += 96){       // form-work joints
+    ctx.moveTo(r.x-ox, y-oy+0.5); ctx.lineTo(r.x+r.w-ox, y-oy+0.5);
+  }
+  for(let x = Math.ceil(r.x/128)*128; x < r.x + r.w; x += 128){
+    ctx.moveTo(x-ox+0.5, r.y-oy); ctx.lineTo(x-ox+0.5, r.y+r.h-oy);
+  }
+  ctx.stroke();
+
+  const n = Math.max(1, (r.w*r.h)/26000|0);                        // tie-rod bolts
+  for(let i=0;i<n;i++){
+    const bx = r.x + hash(i, r.y)*r.w - ox, by = r.y + hash(i+61, r.x)*r.h - oy;
+    ctx.fillStyle = 'rgba(140,152,168,.34)';
+    ctx.beginPath(); ctx.arc(bx, by, 3, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.5)';
+    ctx.beginPath(); ctx.arc(bx-0.8, by-0.8, 1.3, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawTerrain(){
+  const vis = ROCK.filter(r => r.x - ox < VIEW_W + 60 && r.x + r.w - ox > -60 &&
+                               r.y - oy < VIEW_H + 60 && r.y + r.h - oy > -60);
+
+  vis.forEach(r => {                                   // outline: darker shade, never black
+    if(r.platform) return;                             // his blobs carry their own outline
+    const ex = r.x-ox-PAD-OUT, ey = r.y-oy-PAD-OUT;
+    const ew = r.w+(PAD+OUT)*2, eh = r.h+(PAD+OUT)*2, er = radOf(r)+OUT;
+    ctx.fillStyle = r.stone ? C.stoneEdge : C.earthEdge;
+    rr(ctx, ex, ey, ew, eh, er); ctx.fill();
+    if(r.grass){
+      // the rim ABOVE a grass mass belongs to the grass, so it's dark green, not
+      // dark brown — the sides stay brown because the sides are dirt
+      ctx.save();
+      ctx.beginPath(); ctx.rect(ex, ey, ew, OUT+PAD+1); ctx.clip();
+      ctx.fillStyle = C.grassEdge;
+      rr(ctx, ex, ey, ew, eh, er); ctx.fill();
+      ctx.restore();
+    }
+  });
+
+  vis.forEach(r => {
+    if(r.platform){
+      const n = BIOMES[biome].plats;
+      const im = TERRAIN_IMG[biome + '-plat' + ((((r.x/T)|0) + ((r.y/T)|0)) % n + 1)];
+      if(im && im.complete && im.naturalWidth)
+        ctx.drawImage(im, r.x-ox-7, r.y-oy-6, r.w+14, r.h+13);
+      return;
+    }
+    const x = r.x-ox-PAD, y = r.y-oy-PAD, w = r.w+PAD*2, h = r.h+PAD*2;
+    ctx.save();
+    rr(ctx, x, y, w, h, radOf(r)); ctx.clip();
+
+    if(r.stone){
+      const g = ctx.createLinearGradient(0, y, 0, y + Math.min(h, 260));
+      g.addColorStop(0, C.stone); g.addColorStop(1, C.stoneLow);
+      ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+      stoneMarks(r);
+    } else {
+      const g = ctx.createLinearGradient(0, y, 0, y + Math.min(h, 300));
+      g.addColorStop(0, C.earth); g.addColorStop(1, C.earthLow);
+      ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+      blobs(r.x, r.y, r.w, r.h, Math.max(3, (r.w*r.h)/5200|0), 'rgba(60,38,20,.30)', 5, 15);
+
+      if(r.grass){
+        const im = TERRAIN_IMG[biome + '-ground'], STRIP_H = BIOMES[biome].stripH;
+        if(im && im.complete && im.naturalWidth){
+          // Tile his strip, aligned to WORLD positions so it can't slide as you walk.
+          const s = STRIP_H / im.naturalHeight, tw = im.naturalWidth * s;
+          const x0 = Math.floor(r.x / tw) * tw;
+          for(let px = x0; px < r.x + r.w + tw; px += tw)
+            ctx.drawImage(im, Math.round(px-ox), Math.round(r.y-oy-PAD),
+                          Math.ceil(tw)+1, STRIP_H);
+        } else {
+          ctx.fillStyle = C.grass; ctx.fillRect(x, y, w, GRASS_H);
+        }
+      }
+    }
+    ctx.restore();
+  });
+}
+
+function drawLooseDirt(){
+  const vis = DIRT.filter(r => r.x - ox < VIEW_W + 60 && r.x + r.w - ox > -60 &&
+                               r.y - oy < VIEW_H + 60 && r.y + r.h - oy > -60);
+  ctx.fillStyle = C.looseEdge;
+  vis.forEach(r => { rr(ctx, r.x-ox-PAD-OUT, r.y-oy-PAD-OUT,
+                         r.w+(PAD+OUT)*2, r.h+(PAD+OUT)*2, 8+OUT); ctx.fill(); });
+  vis.forEach(r => {
+    const x = r.x-ox-PAD, y = r.y-oy-PAD, w = r.w+PAD*2, h = r.h+PAD*2;
+    ctx.save(); rr(ctx, x, y, w, h, 6); ctx.clip();
+    const g = ctx.createLinearGradient(0, y, 0, y+h);
+    g.addColorStop(0, C.loose); g.addColorStop(1, C.looseLow);
+    ctx.fillStyle = g; ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = C.crack; ctx.lineWidth = 2.4; ctx.lineCap = 'round';
+    for(let i=0;i<Math.max(4, (r.w*r.h)/700|0); i++){      // crackle, world-anchored
+      let cx = r.x + hash(i, r.y)*r.w, cy = r.y + hash(i+53, r.x)*r.h;
+      ctx.beginPath(); ctx.moveTo(cx-ox, cy-oy);
+      for(let k=0;k<3;k++){
+        cx += (hash(i+k, k)-0.5)*16; cy += (hash(i+k+9, k)-0.5)*16;
+        ctx.lineTo(cx-ox, cy-oy);
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  });
+}
+
+function drawSky(){
+  const sy = SURFACE - oy;                               // ground line, in screen space
+  const g = ctx.createLinearGradient(0, -oy, 0, sy);
+  g.addColorStop(0, C.skyTop); g.addColorStop(1, C.skyLow);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, Math.max(0, sy));
+
+  ctx.fillStyle = 'rgba(255,255,255,.72)';               // clouds
+  for(let i=0;i<14;i++){
+    const cx = ((i*337 - ox*0.18) % (VIEW_W+420)) - 210;
+    const cy = 40 + (i%4)*62 - oy*0.35, s = 20 + (i%3)*10;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, s*1.9, s*0.72, 0, 0, 7);
+    ctx.ellipse(cx+s*0.9, cy-s*0.34, s*1.1, s*0.66, 0, 0, 7);
+    ctx.ellipse(cx-s*1.0, cy-s*0.14, s*0.9, s*0.52, 0, 0, 7);
+    ctx.fill();
+  }
+  [[0.10, C.hillFar, 118], [0.22, C.hill, 74]].forEach(([par, col, amp]) => {
+    ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(0, sy);
+    for(let x=0; x<=VIEW_W; x+=14){
+      const wx = x + ox*par;
+      ctx.lineTo(x, sy - amp - Math.sin(wx*0.0032)*amp*0.42 - Math.sin(wx*0.0011+2)*amp*0.3);
+    }
+    ctx.lineTo(VIEW_W, sy); ctx.closePath(); ctx.fill();
+  });
+
+  const deep = MAP_H*T;                                   // underground backdrop
+  ctx.fillStyle = C.under;
+  ctx.fillRect(0, sy, VIEW_W, VIEW_H - sy);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, sy, VIEW_W, VIEW_H - sy); ctx.clip();
+  ctx.fillStyle = C.underMud;                             // mud spots, pinned to world cells
+  const CELL = 210, k0 = Math.floor(ox/CELL)-1, k1 = Math.ceil((ox+VIEW_W)/CELL);
+  for(let k=k0;k<=k1;k++) for(let j=0;j<4;j++){
+    const bx = k*CELL + hash(k, j)*CELL - ox;
+    const by = SURFACE + hash(k+5, j)*(deep-SURFACE) - oy;
+    const rad = 9 + hash(k+11, j)*21;
+    ctx.beginPath();
+    ctx.ellipse(bx, by, rad, rad*(0.55 + hash(k, j+3)*0.5), hash(k,j)*3, 0, 7);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Runs the exact flight model forward from where he is now, assuming you hold the
+// cursor where it is, and reports where he'd touch down. He stays level in the air,
+// so this marker is the only thing telling you where you're actually going.
+function predictLanding(){
+  const ch = player.char, step = 1/60;
+  let x = player.x, y = player.y, vy = player.vy;
+  let ft = player.flightT, lf = player.lift;
+  for(let i=0;i<260;i++){
+    let sink;
+    if(player.diving) sink = PLANE_DIVE;
+    else if(player.lifting && lf > 0){ lf -= step; sink = PLANE_HOLD; }
+    else { ft += step; sink = Math.min(MAX_FALL, PLANE_SINK0 * Math.exp(ft / PLANE_TAU)); }
+    vy += (sink - vy) * Math.min(1, (player.diving ? 14 : 9)*step);
+    x += player.vx*step; y += vy*step;
+    if(blocked(ch, x, y, player.w, player.h)) return {x, y};
+  }
+  return null;
+}
+
+let camX = 0, camY = 0, ox = 0, oy = 0;
+// ═════════════ THE BUNKER, DRAWN ═════════════
+// White concrete, quartz panelling, and strip lighting that is far too good for
+// a place where you keep animals. The lights are also the HUD: they run white
+// while you're passing as staff and go red the moment a robot works you out.
+function alertLevel(){
+  let a = 0;
+  for(const e of enemies){
+    if(e.dead || e.K.inert) continue;
+    if(e.x - ox < -300 || e.x - ox > VIEW_W + 300) continue;
+    a = Math.max(a, e.state === 'hunting' ? 1 : e.state === 'suspicious' ? 0.45 : 0);
+  }
+  return a;
+}
+let ledMix = 0;
+
+function drawBunkerBack(){
+  const g = ctx.createLinearGradient(0, -oy, 0, MAP_H*T - oy);
+  g.addColorStop(0, C.back); g.addColorStop(1, C.backLow);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+  // quartz panelling — seams pinned to WORLD cells so they can't crawl as you walk
+  const PW = 96, PH = 80;
+  ctx.strokeStyle = C.seam; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for(let x = Math.floor(ox/PW)*PW; x < ox+VIEW_W+PW; x += PW){
+    ctx.moveTo(x-ox+0.5, 0); ctx.lineTo(x-ox+0.5, VIEW_H);
+  }
+  for(let y = Math.floor(oy/PH)*PH; y < oy+VIEW_H+PH; y += PH){
+    ctx.moveTo(0, y-oy+0.5); ctx.lineTo(VIEW_W, y-oy+0.5);
+  }
+  ctx.stroke();
+  // faint quartz mottle, world-seeded (never screen-seeded, or it boils)
+  for(let x = Math.floor(ox/PW)*PW; x < ox+VIEW_W+PW; x += PW)
+    for(let y = Math.floor(oy/PH)*PH; y < oy+VIEW_H+PH; y += PH){
+      const h = hash(x/PW|0, y/PH|0);
+      ctx.fillStyle = `rgba(255,255,255,${0.05 + h*0.07})`;
+      ctx.fillRect(x-ox+1, y-oy+1, PW-2, PH-2);
+    }
+
+  // ── the strip lighting
+  const want = alertLevel();
+  ledMix += (want - ledMix) * 0.08;
+  const alarm = ledMix > 0.5 && (Math.sin(spin*1.9) > -0.35);
+  const col   = ledMix > 0.02
+    ? `rgb(${234 + (255-234)*ledMix | 0},${246 - 168*ledMix | 0},${255 - 171*ledMix | 0})`
+    : C.led;
+  const glow  = ledMix > 0.02 ? C.ledAlert : C.ledGlow;
+
+  [10*T, 18*T].forEach((wy, i) => {
+    const y = wy - oy + (i ? 2 : -4);
+    if(y < -30 || y > VIEW_H + 30) return;
+    const gg = ctx.createLinearGradient(0, y - 26, 0, y + 26);
+    gg.addColorStop(0, 'rgba(0,0,0,0)');
+    gg.addColorStop(0.5, glow.replace(')', ',0.30)').replace('rgb','rgba').replace('#','')
+      .startsWith('rgba') ? glow : glow);
+    gg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.save();
+    ctx.globalAlpha = 0.22 + ledMix*0.30;
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, y - 22, VIEW_W, 44);
+    ctx.restore();
+    // the strip itself, broken into fittings
+    for(let x = Math.floor(ox/140)*140; x < ox+VIEW_W+140; x += 140){
+      const on = !alarm || (((x/140)|0) % 2 === 0);
+      ctx.fillStyle = on ? col : '#8b929c';
+      ctx.fillRect(x-ox+10, y - 2, 120, 4.5);
+    }
+  });
+}
+
+// ── health bars. Segmented by ONE FRIENDLY LASER, so the bar tells you how many
+// more shots you need to walk into it. The white ghost is the hit you just landed.
+function healthBar(x, y, w, hp, max, ghost, seg, hot){
+  const h = 7;
+  ctx.fillStyle = 'rgba(10,14,20,.75)';
+  rr(ctx, x-2, y-2, w+4, h+4, 5); ctx.fill();
+  if(ghost > hp){
+    ctx.fillStyle = 'rgba(255,255,255,.85)';
+    rr(ctx, x, y, w*ghost/max, h, 3.5); ctx.fill();
+  }
+  const k = hp/max;
+  ctx.fillStyle = hot ? '#ff4d54' : k > 0.5 ? '#ff8f4d' : '#ff4d54';
+  rr(ctx, x, y, Math.max(0, w*k), h, 3.5); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,.30)';
+  rr(ctx, x, y, Math.max(0, w*k), h*0.42, 3); ctx.fill();
+  ctx.fillStyle = 'rgba(10,14,20,.55)';                    // segment ticks
+  for(let v = seg; v < max; v += seg) ctx.fillRect(x + w*v/max - 0.75, y, 1.5, h);
+}
+
+function drawEnemies(){
+  enemies.forEach(e => {
+    if(e.x - ox < -160 || e.x - ox > VIEW_W + 160) return;
+
+    if(e.dead){
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - e.deadT*0.55);
+      ctx.translate(Math.round(e.x-ox), Math.round(e.y-oy + Math.min(14, e.deadT*40)));
+      ctx.rotate(Math.min(1.35, e.deadT*1.6) * e.face);
+      drawDog(ctx, 0, 0, e, e.face, 0, {moving:false});
+      ctx.restore();
+      return;
+    }
+
+    // vision cone — you can see what it can see. That is the whole stealth game.
+    if(!e.K.inert && e.state !== 'hunting'){
+      const eye = eyeOf(e);
+      const a = e.state === 'suspicious' ? 0.16 : 0.08;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = e.state === 'suspicious' ? '#ffc93c' : '#9fdcff';
+      ctx.beginPath();
+      ctx.moveTo(eye.x-ox, eye.y-oy);
+      const R = e.K.sight, sp = e.K.fov;
+      ctx.lineTo(eye.x-ox + e.face*R, eye.y-oy - R*sp - 70);
+      ctx.lineTo(eye.x-ox + e.face*R, eye.y-oy + R*sp + 70);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.translate(Math.round(e.x-ox), Math.round(e.y-oy));
+    drawDog(ctx, 0, 0, e, e.face, e.phase, {moving:Math.abs(e.vx) > 6});
+    if(e.flash > 0){                                   // hit flash
+      ctx.globalCompositeOperation = 'source-atop';
+      ctx.fillStyle = `rgba(255,255,255,${e.flash*3})`;
+      ctx.fillRect(-10, -20, e.w+20, e.h+30);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    ctx.restore();
+
+    if(e.K.inert) return;
+
+    // the charging eye — your window to move a friend into the line
+    if(e.aim > 0){
+      const eye = eyeOf(e), k = 1 - e.aim/e.K.aimTime;
+      ctx.save();
+      ctx.globalAlpha = 0.30 + k*0.55;
+      ctx.strokeStyle = '#ff4d54'; ctx.lineWidth = 1 + k*2.5;
+      ctx.setLineDash([9, 7]); ctx.lineDashOffset = -spin*9;
+      ctx.beginPath();
+      ctx.moveTo(eye.x-ox, eye.y-oy);
+      ctx.lineTo(eye.x-ox + e.face*900, eye.y-oy);
+      ctx.stroke();
+      ctx.restore();
+      ctx.fillStyle = '#ff4d54';
+      ctx.beginPath(); ctx.arc(eye.x-ox + e.face*e.w*0.4, eye.y-oy, 3 + k*6, 0, 7); ctx.fill();
+    }
+    // the brute winding up
+    if(e.wind > 0){
+      const k = 1 - e.wind/e.K.wind;
+      ctx.strokeStyle = `rgba(255,77,84,${0.35 + k*0.5})`; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(e.x-ox + e.w/2 + e.face*e.K.reach*0.55, e.y-oy + e.h*0.55,
+              e.K.reach*(0.5 + k*0.5), 0, 7);
+      ctx.stroke();
+    }
+
+    const bw = 46, bx = e.x-ox + e.w/2 - bw/2, by = e.y-oy - 22;
+    healthBar(bx, by, bw, e.hp, e.max, e.ghost, DMG.laserRobo, e.state==='hunting');
+
+    // suspicion — the ? filling up is your warning that the disguise is slipping
+    if(e.state === 'suspicious'){
+      const k = Math.min(1, e.sus);
+      ctx.fillStyle = 'rgba(10,14,20,.72)';
+      ctx.beginPath(); ctx.arc(bx+bw/2, by-16, 11, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#ffc93c'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(bx+bw/2, by-16, 9, -Math.PI/2, -Math.PI/2 + k*6.283); ctx.stroke();
+      ctx.fillStyle = '#ffc93c'; ctx.font = '900 12px ui-sans-serif,system-ui';
+      ctx.textAlign = 'center'; ctx.fillText('?', bx+bw/2, by-11.5);
+    } else if(e.state === 'hunting'){
+      const pop = 1 + Math.max(0, e.alertPop)*0.9;
+      ctx.save();
+      ctx.translate(bx+bw/2, by-16); ctx.scale(pop, pop);
+      ctx.fillStyle = 'rgba(10,14,20,.72)';
+      ctx.beginPath(); ctx.arc(0, 0, 11, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ff4d54'; ctx.font = '900 14px ui-sans-serif,system-ui';
+      ctx.textAlign = 'center'; ctx.fillText('!', 0, 5);
+      ctx.restore();
+    }
+    ctx.textAlign = 'left';
+  });
+
+  lasers.forEach(L => {
+    const x = L.x-ox, y = L.y-oy, len = 34*Math.sign(L.vx);
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.strokeStyle = '#ff4d54'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-len, y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.restore();
+    ctx.strokeStyle = '#fff2f2'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x-len*0.8, y); ctx.lineTo(x, y); ctx.stroke();
+  });
+
+  sparks.forEach(s => {
+    ctx.fillStyle = `rgba(255,${180 + Math.random()*60|0},90,${Math.min(1, s.life*2)})`;
+    ctx.fillRect(s.x-ox-1.5, s.y-oy-1.5, 3.5, 3.5);
+  });
+}
+
+function draw(){
+  const cx = player.x + player.w/2 + player.face*330*player.peri;
+  const tx = Math.max(0, Math.min(MAP_W*T - VIEW_W, cx - VIEW_W/2));
+  const ty = Math.max(0, Math.min(MAP_H*T - VIEW_H,
+                                  player.y + player.h/2 - VIEW_H*0.56));
+  camX += (tx - camX)*0.12;
+  camY += (ty - camY)*0.09;
+  ox = Math.round(camX); oy = Math.round(camY);
+
+  drawBunkerBack();
+  drawTerrain();
+  drawLooseDirt();
+
+  const c0 = Math.max(0, Math.floor(ox/T)-1), c1 = Math.min(MAP_W-1, Math.ceil((ox+VIEW_W)/T));
+  const rr0 = Math.max(0, Math.floor(oy/T)-2), rr1 = Math.min(MAP_H-1, Math.ceil((oy+VIEW_H)/T)+1);
+  for(let r=rr0;r<=rr1;r++) for(let c=c0;c<=c1;c++){
+    const t = grid[r][c], x = c*T-ox, y = r*T-oy;
+
+    if(t==='e' || t==='K'){
+      // a doghouse. Every one of them in here is standing open and empty
+      // except the last, which is not.
+      const mine = t==='K';
+      const bx = x-9, bw = T+18, by = y-T+2, bh = 2*T-2, roof = 24;
+      ctx.fillStyle = mine ? '#4cc9f0' : '#8e9aa8';
+      ctx.beginPath();
+      ctx.moveTo(bx-6, by+roof); ctx.lineTo(bx+bw/2, by); ctx.lineTo(bx+bw+6, by+roof);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(bx, by+roof-2, bw, bh-roof+2);
+      ctx.fillStyle = mine ? '#0d1a24' : '#3c4551';         // the dark mouth
+      const dw = bw*0.5, dx = bx+(bw-dw)/2, dy = by+bh-30;
+      ctx.beginPath();
+      ctx.moveTo(dx, by+bh); ctx.lineTo(dx, dy+10);
+      ctx.quadraticCurveTo(dx+dw/2, dy-9, dx+dw, dy+10);
+      ctx.lineTo(dx+dw, by+bh); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = mine ? '#ffd166' : '#c3ccd6';         // the nameplate
+      ctx.fillRect(bx+bw/2-7, by+roof+3, 14, 4);
+
+    } else if(t==='R' || t==='C'){
+      const d = doorAt(c,r), open = d && d.open;
+      if(open){
+        ctx.fillStyle = 'rgba(120,220,255,.10)'; ctx.fillRect(x+4, y, T-8, T);
+        ctx.fillStyle = '#7fd4ff'; ctx.fillRect(x+4, y, T-8, 2);
+      } else {
+        ctx.fillStyle = '#8c96a3'; rr(ctx, x+1, y, T-2, T, 3); ctx.fill();
+        ctx.fillStyle = '#aeb8c5'; rr(ctx, x+4, y+2, T-8, T-4, 2); ctx.fill();
+        ctx.fillStyle = 'rgba(43,49,56,.55)';
+        ctx.fillRect(x+4, y + (r%2 ? 8 : 20), T-8, 3);        // shutter slats
+        if(t==='R'){                                          // chip reader — it wants you
+          ctx.fillStyle = '#7fd4ff';
+          ctx.beginPath(); ctx.arc(x+T/2, y+T/2, 3.4, 0, 7); ctx.fill();
+        } else {                                              // locked while anything guards it
+          ctx.fillStyle = '#ff4d54';
+          ctx.fillRect(x+T/2-4, y+T/2-4, 8, 8);
+        }
+      }
+
+    } else if(t==='P'){
+      // THE CRACKED PANEL. Nothing you own can open this.
+      ctx.fillStyle = '#c8ccd2'; rr(ctx, x, y, T, T, 2); ctx.fill();
+      ctx.fillStyle = '#dfe3e9'; rr(ctx, x+2, y+2, T-4, T-4, 2); ctx.fill();
+      ctx.strokeStyle = '#8a9199'; ctx.lineWidth = 1.8; ctx.lineCap = 'round';
+      for(let i=0;i<4;i++){                                   // world-seeded cracks
+        let px = x + hash(c, r+i)*T, py = y + hash(c+7, r+i)*T;
+        ctx.beginPath(); ctx.moveTo(px, py);
+        for(let k=0;k<3;k++){
+          px += (hash(c+k, r+i+k)-0.5)*15; py += (hash(c+k+9, r+i)-0.5)*15;
+          ctx.lineTo(px, py);
+        }
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#ffc93c';                              // hazard flash
+      ctx.fillRect(x+2, y+T/2-2, T-4, 4);
+      ctx.fillStyle = 'rgba(43,49,56,.5)';
+      for(let i=0;i<3;i++) ctx.fillRect(x+3+i*11, y+T/2-2, 5, 4);
+
+    } else if(t==='L'){
+      // THE DOOR A DOGGO LOCKED. No reader, no panel, nothing to show the chip.
+      ctx.fillStyle = '#39414c'; rr(ctx, x, y, T, T, 3); ctx.fill();
+      ctx.fillStyle = '#4d5764'; rr(ctx, x+3, y+2, T-6, T-4, 2); ctx.fill();
+      ctx.strokeStyle = '#2a3038'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x+2, y+T*0.3); ctx.lineTo(x+T-2, y+T*0.3);
+      ctx.moveTo(x+2, y+T*0.75); ctx.lineTo(x+T-2, y+T*0.75); ctx.stroke();
+      ctx.fillStyle = '#8b939e';                              // bolts, from the far side
+      [0.3, 0.75].forEach(f => { [6, T-6].forEach(dx2 => {
+        ctx.beginPath(); ctx.arc(x+dx2, y+T*f, 2.6, 0, 7); ctx.fill(); }); });
+
+    } else if(t==='w'){
+      // THE FLOODED STAIRWELL. It goes a long way down.
+      const surf = r === 18;
+      ctx.fillStyle = surf ? 'rgba(70,150,190,.55)' : 'rgba(30,90,130,.72)';
+      ctx.fillRect(x, y, T, T);
+      if(surf){
+        ctx.fillStyle = 'rgba(210,245,255,.75)';
+        for(let i=0;i<T;i+=5)
+          ctx.fillRect(x+i, y + 2 + Math.sin((c*T+i)*0.09 + spin*0.7)*2.2, 3.5, 2.5);
+      }
+      ctx.fillStyle = 'rgba(127,212,255,.22)';                // lights still on, far below
+      if((c+r) % 3 === 0)
+        ctx.fillRect(x+T/2-2, y+T/2-2 + Math.sin(spin*0.4+c)*3, 4, 4);
+
+    } else if(t==='v'){
+      // a vent. Too small, too high. Not today.
+      ctx.fillStyle = '#3b434e'; rr(ctx, x+2, y+6, T-4, T-12, 3); ctx.fill();
+      ctx.fillStyle = '#6d7783';
+      for(let i=0;i<4;i++) ctx.fillRect(x+4, y+9+i*4.5, T-8, 2.4);
+
+    } else if(t==='G'){
+      // daylight. the first green in the game is up there.
+      const gg = ctx.createLinearGradient(0, y-T, 0, y+2*T);
+      gg.addColorStop(0, 'rgba(255,255,255,.95)');
+      gg.addColorStop(1, 'rgba(180,235,160,0)');
+      ctx.fillStyle = gg; ctx.fillRect(x-6, y-T, T+12, 3*T);
+    }
+  }
+
+  COINS.forEach(c => {
+    if(c.got || c.x - ox < -40 || c.x - ox > VIEW_W + 40) return;
+    const [fi, flip, fat] = COIN_SEQ[(Math.floor(spin) + c.ph) % COIN_SEQ.length];
+    const im = COIN_IMG[fi];
+    if(!(im.complete && im.naturalWidth)) return;
+    const h = COIN_H, w = h * im.naturalWidth / im.naturalHeight * fat;
+    const bob = Math.sin(spin*0.5 + c.ph)*2.5;
+    ctx.save();
+    ctx.translate(c.x - ox, c.y + bob - oy);
+    if(flip) ctx.scale(-1, 1);
+    ctx.drawImage(im, -w/2, -h/2, w, h);
+    ctx.restore();
+  });
+
+  orbs.forEach(o => {
+    ctx.fillStyle = 'rgba(232,140,255,.32)';
+    ctx.beginPath(); ctx.arc(o.x-ox, o.y-oy, 11, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f7d5ff';
+    ctx.beginPath(); ctx.arc(o.x-ox, o.y-oy, 5, 0, 7); ctx.fill();
+  });
+
+  vapor.forEach(p => {
+    const k = p.t / p.life;
+    ctx.fillStyle = `rgba(255,255,255,${0.5*(1-k)*(1-k)})`;
+    ctx.beginPath(); ctx.arc(p.x-ox, p.y-oy, 2.5 + k*9, 0, 7); ctx.fill();
+  });
+
+  if(player.gliding){                              // where this flight ends up
+    const land = predictLanding();
+    if(land){
+      const lx = land.x - ox + player.w/2, ly = land.y - oy + player.h;
+      ctx.save();
+      ctx.strokeStyle = 'rgba(255,255,255,.75)'; ctx.lineWidth = 2.5;
+      ctx.setLineDash([5,5]); ctx.lineDashOffset = -spin*4;
+      ctx.beginPath();
+      ctx.moveTo(player.x - ox + player.w/2, player.y - oy + player.h);
+      ctx.lineTo(lx, ly); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.ellipse(lx, ly, 11, 4.5, 0, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,.35)';
+      ctx.beginPath(); ctx.ellipse(lx, ly, 11, 4.5, 0, 0, 7); ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  drawEnemies();
+
+  player.trail.forEach((p, i) => {                 // zoomies afterimages
+    ctx.save();
+    ctx.globalAlpha = 0.30 * (1 - i/player.trail.length);
+    ctx.translate(Math.round(p.x-ox), Math.round(p.y-oy));
+    drawDog(ctx, 0, 0, player.char, p.f, player.phase, {moving:true});
+    ctx.restore();
+  });
+  // the dash — a hard streak, because it is the one thing that reads as "not a robot"
+  if(player.dash > 0){
+    const k = player.dash / DASH_TIME;
+    ctx.save();
+    ctx.globalAlpha = 0.42*k;
+    for(let i=1;i<=3;i++){
+      ctx.translate(-player.face*11, 0);
+      drawDog(ctx, Math.round(player.x-ox), Math.round(player.y-oy),
+              player.char, player.face, player.phase, {moving:true});
+    }
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.translate(Math.round(player.x-ox), Math.round(player.y-oy));
+  // i-frames blink, so you can tell when the next hit will actually land
+  if(player.hurt > 0) ctx.globalAlpha = (Math.floor(player.hurt*22) % 2) ? 0.35 : 1;
+  drawDog(ctx, 0, 0, player.char, player.face, player.phase,
+          {gliding:player.gliding, digging:player.digging, peri:player.peri,
+           lifting:player.lifting,
+           moving:Math.abs(player.vx) > 5 && player.coyote > 0});
+  if(player.hurt > 0.6){
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillStyle = 'rgba(255,80,90,.75)';
+    ctx.fillRect(-10, -20, player.w+20, player.h+30);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  ctx.restore();
+
+  if(player.digging){
+    ctx.fillStyle = 'rgba(180,130,80,.65)';
+    for(let i=0;i<5;i++){
+      const a = player.phase*2 + i*1.7;
+      ctx.fillRect(player.x-ox+player.w/2+Math.cos(a)*13,
+                   player.y-oy+player.h*0.6+Math.sin(a)*11, 3,3);
+    }
+  }
+}
+
+// ───────────────────────────────────────────── loop
+let last = performance.now();
+function frame(now){
+  let dt = (now-last)/1000; last = now;
+  dt = Math.min(dt, 1/30);
+  update(dt); draw();
+  requestAnimationFrame(frame);
+}
+fitCanvas();
+drawCardArt();
+hudCoins.textContent = `0 / ${COINS.length} coins`;
+becomeDoggo(byId('barkmc'));
+requestAnimationFrame(frame);
+window.__bark = { player, grid, CAST, byId, becomeDoggo, doors, orbs, T,
+                  enemies, lasers, SHUTTERS, hurtRobot, seen, checkpointOf:()=>checkpoint,
+                  get cam(){ return {ox, oy}; },
+                  get music(){ let pk = 0;
+                    if(musMeter){ const d = new Float32Array(musMeter.fftSize);
+                      musMeter.getFloatTimeDomainData(d);
+                      for(const v of d) pk = Math.max(pk, Math.abs(v)); }
+                    return {track:musTrack, on:musOn, notes:noteCount,
+                            state:actx && actx.state, peak:+pk.toFixed(3)}; },
+                  get plasmaOpen(){ return plasmaOpen; } };
+})();
+</script>
+</body>
+</html>
