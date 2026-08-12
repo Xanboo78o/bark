@@ -164,7 +164,7 @@ const DOG_H = 44;
 const CAST = [
   // you. Xanboo78o's doggo, still wearing the collar he tore off.
   { id:'barkmc', name:'BARKmc', col:'#f5a623', w:26, h:34, tag:'ADAM',
-    art:'BARKmc', bw:260, move:'dash',
+    art:'BARKmc', bw:260, move:'dash', chip:true,
     atk:'5', spd:'Normal', ability:'Dash — E. A dodge that stings.',
     note:'you · the one that got away' },
   // rescued at the end of the bunker. Locked until then.
@@ -260,8 +260,10 @@ fill(76,13,1,5,'P');               // CRACKED PANEL — his laser is the only th
 fill(90,18,7,3,'w');               // PROMISE: the flooded stairwell → THE AQUADEPTHS
 fill(89,18,1,3,'#'); fill(97,18,1,3,'#');
 fill(103,15,3,1,'#');
-fill(112,13,1,5,'L');              // PROMISE: the doggo-locked door → DELETION DEPTHS HIGHWAY
-fill(113,13,3,5,'#');              // and the dead rock behind it
+// PROMISE: the doggo-locked door → DELETION DEPTHS HIGHWAY.
+// A HATCH IN THE FLOOR, not a wall. The Highway goes down, and a promise must
+// never sit across the only path — as a wall this sealed off rooms 5, 6 and 7.
+fill(111,18,5,1,'L');
 
 // ── 5 · THE PATROL (x 117-150) — the verb again, escalated: robot vs ROBOT
 fill(117,10,1,3,'#');
@@ -277,19 +279,18 @@ fill(190,13,1,5,'C');              // Dalmatian's cell door — opens when the g
 // ── 7 · DALMATIAN, AND UP (x 191-215)
 put(194,17,'K');                   // his cell. the roster goes from one to two.
 
-// THE SHAFT OUT. Two hard constraints, both learned the painful way:
-//   · a step may rise at most TWO tiles (the jump clears 2.77)
-//   · nothing may sit within FIVE rows directly above a step you take off from —
-//     the apex puts your head 3.9 tiles up and you clang into it
-// A plain diagonal staircase satisfies both: nothing is ever overhead.
-fill(198,0,MAP_W-199,18,'.');
-fill(198,0,1,18,'#');              // the shaft's left wall
-fill(199,16,3,1,'#');
-fill(202,14,3,1,'#');
-fill(205,12,3,1,'#');
-fill(208,10,3,1,'#');
-fill(211,8,3,1,'#');
-fill(211,6,3,1,'G');               // daylight, and out
+// THE WAY OUT. Cut UP out of the ground as a solid staircase, not floating
+// platforms — those you simply walk underneath and never notice.
+// Two rules it obeys: a step rises at most TWO tiles (the jump clears 2.77), and
+// nothing sits within FIVE rows above a take-off point (the apex puts your head
+// 3.9 tiles up, and you clang into anything closer).
+fill(198,0,MAP_W-199,18,'.');      // carve the ceiling slab away above the stair
+fill(199,16,3,5,'#');
+fill(202,14,3,7,'#');
+fill(205,12,3,9,'#');
+fill(208,10,3,11,'#');
+fill(211,8,4,13,'#');
+fill(211,6,4,1,'G');               // daylight, and out
 
 fill(0,0,1,MAP_H,'#'); fill(MAP_W-1,0,1,MAP_H,'#');
 
@@ -513,6 +514,10 @@ function hurtRobot(e, amount, src){
   if(e.state !== 'hunting'){ e.state = 'hunting'; e.sus = 1; e.alertPop = 0.9; shout(e); }
   if(e.hp <= 0){
     e.hp = 0; e.dead = true; e.deadT = 0;
+    // Insurance against a soft-lock: the only thing that can open the cracked
+    // panel is this one Cyclops. If it dies first the room is sealed forever,
+    // so it takes the wall with it when it goes.
+    if(e.x < 100*T && PANEL_COLS.some(c => grid[17][c] === 'P')) PANEL_COLS.forEach(breakPanel);
     for(let i=0;i<16;i++) sparks.push({ x:e.x+e.w/2, y:e.y+e.h*0.5,
       vx:(Math.random()-0.5)*300, vy:-Math.random()*260, life:0.5+Math.random()*0.4 });
     sfx('pop', 0.6);
@@ -1203,12 +1208,14 @@ function update(dt){
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
 
-  // the chip: robo doors just open for whoever is wearing one, and stay open
-  if(ch.move==='chip'){
+  // the chip: robo doors just open for whoever is wearing one, and stay open.
+  // PASSIVE — never gate this on `move`, that slot belongs to the dash.
+  if(ch.chip){
     const c0=Math.floor((player.x-6)/T), c1=Math.floor((player.x+player.w+5)/T);
     const r0=Math.floor(player.y/T), r1=Math.floor((player.y+player.h-1)/T);
     for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++){
-      const d = doorAt(c,r); if(d && !d.open){ d.open = true; d.t = 0; }
+      const d = doorAt(c,r);
+      if(d && d.kind === 'R' && !d.open){ d.open = true; d.t = 0; sfx('pop', 0.45); }
     }
   }
   doors.forEach(d => { if(d.open) d.t = Math.min(1, (d.t||0) + dt*3); });
@@ -1261,11 +1268,17 @@ function update(dt){
     if(p.t >= p.life) vapor.splice(i,1);
   }
 
-  // You cannot swim. You bob on the surface of the stairwell and go no further down.
+  // You cannot swim DOWN — that's the gate. But you must always be able to get
+  // back OUT, or the first promise in the game is a hole you drown in.
+  // You bob to the surface, keep steering, and can haul yourself out.
   if(inWater(player)){
     player.vy = Math.min(player.vy, 0) - 240*dt;
-    player.vx *= 0.86;
-    if(player.y + player.h > 18*T + 10) player.y = 18*T + 10 - player.h;
+    player.vx *= 0.94;
+    if(player.y + player.h > 18*T + 10){
+      player.y = 18*T + 10 - player.h;
+      player.vy = Math.min(player.vy, 0);
+    }
+    player.coyote = COYOTE;                 // treading water counts as footing
   }
 
   spin += dt*11;
