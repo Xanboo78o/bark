@@ -63,12 +63,17 @@
   #roster h2{margin:0;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--cool)}
   #cards{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;
     max-width:1000px;max-height:66vh;overflow-y:auto;padding:4px}
-  .card{width:114px;background:var(--panel);border:2px solid var(--line);border-radius:13px;
-    padding:8px 7px;text-align:center;cursor:pointer;transition:border-color .12s,transform .12s}
-  .card.sel{border-color:var(--doggo);transform:translateY(-3px)}
+  .card{width:126px;height:180px;position:relative;background:url(doggos/BARKcard.png) no-repeat;
+    background-size:100% 100%;cursor:pointer;transition:transform .12s,filter .12s}
+  .card.sel{transform:translateY(-4px);filter:drop-shadow(0 0 0 var(--doggo)) brightness(1.12)}
   .card.lock{opacity:.45}
-  .card canvas{display:block;margin:0 auto 4px;background:var(--panel2);border-radius:8px}
-  .card b{display:block;font-size:11px;letter-spacing:.05em;text-transform:uppercase;line-height:1.25}
+  /* the window and the name bar, measured off his drawing */
+  .card canvas{position:absolute;left:18%;top:12.2%;width:63.3%;height:37.4%;
+    background:none;border-radius:0}
+  .card b{position:absolute;left:13%;top:62.3%;width:73.8%;
+    font-size:9px;letter-spacing:.04em;text-transform:uppercase;line-height:1.1;
+    color:#2a2a2a;overflow:hidden}
+  .card .stat,.card .abil,.card .note{display:none}
   .card .stat{font-size:10px;color:var(--cool);margin-top:3px;letter-spacing:.04em}
   .card .abil{display:block;font-size:10.5px;color:var(--tx);margin-top:3px;line-height:1.3}
   .card .note{display:block;font-size:9.5px;color:var(--mut);margin-top:3px;line-height:1.3}
@@ -198,7 +203,7 @@ const CAST = [
   { id:'zombie', name:'Zombie Doggo', col:'#8fb06a', hat:'none', w:26, h:34, tag:'DB',
     art:'Zombie-Doggo', bw:258,
     atk:'Normal', spd:'Normal', ability:'Steal health', note:'#7' },
-  { id:'cool', name:'Cool Doggo', col:'#4cc9f0', hat:'shades', w:26, h:34, tag:'DB',
+  { id:'cool', name:'Cool Doggo', col:'#4cc9f0', hat:'shades', w:26, h:34, tag:'DB', wallJump:true,
     art:'Cool-Doggo', dh:43, bw:269, speedMul:1.4, move:'speed',
     accelMul:0.40, frictionMul:1.3,     // winds up over ~0.4s, still stops firmly
     atk:'Normal', spd:'High', ability:'Speed', note:'#8' },
@@ -1429,7 +1434,7 @@ const cardCtx = [];
 CAST.forEach((c,i) => {
   const card = document.createElement('div');
   card.className = 'card' + (held_(c) ? '' : ' lock');
-  const cv = document.createElement('canvas'); cv.width = 100; cv.height = 62;
+  const cv = document.createElement('canvas'); cv.width = 100; cv.height = 85;
   card.append(cv);
   const b = document.createElement('b'); b.textContent = c.name;
   const st = document.createElement('div'); st.className = 'stat';
@@ -1445,14 +1450,14 @@ CAST.forEach((c,i) => {
 });
 function drawCardArt(){
   cardCtx.forEach(({g,c}) => {
-    g.clearRect(0,0,100,62);
+    g.clearRect(0,0,100,85);
     if(c.art){
       const im = IMG[c.art];
       if(!(im && im.complete && im.naturalWidth)) return;
-      drawDog(g, 50-c.w/2, 58-c.h, c, 1, 0, {dh:50, moving:false});   // cards: uniform
+      drawDog(g, 50-c.w/2, 78-c.h, c, 1, 0, {dh:58, moving:false});   // cards: uniform
     }
     else {
-      g.save(); g.translate(50 - c.w*1.25/2, 57 - c.h*1.25);
+      g.save(); g.translate(50 - c.w*1.25/2, 78 - c.h*1.25);
       g.scale(1.25,1.25); drawDog(g, 0, 0, c, 1, 0, {moving:false}); g.restore();
     }
   });
@@ -1552,9 +1557,9 @@ function update(dt){
       player.vy = JUMP_V * jm;
       player.buffer = 0; player.coyote = 0; player.onGround = false;
       snd('jump');
-    } else if(zooming && player.buffer>0 && player.wallCoyote>0 && player.wall){
+    } else if((zooming || ch.wallJump) && player.buffer>0 && player.wallCoyote>0 && player.wall){
       player.vy = JUMP_V * jm * 0.92;              // wall kick, away from the wall
-      player.vx = -player.wall * RUN * ZOOM_SPEED * WALL_KICK;
+      player.vx = -player.wall * base * WALL_KICK;
       player.face = Math.sign(player.vx);
       player.buffer = 0; player.wallCoyote = 0;
       snd('kick');
