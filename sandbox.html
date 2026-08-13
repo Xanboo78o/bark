@@ -10,8 +10,11 @@
     --tx:#eae6f4; --mut:#9b93b8; --doggo:#ffd166; --cool:#4cc9f0;
   }
   *{box-sizing:border-box}
+  /* Scratch's "Pixel" is Grand9K Pixel -- the exact TTF Scratch itself ships */
+  @font-face{font-family:'Pixel';src:url(fonts/Grand9K-Pixel.ttf) format('truetype');
+    font-display:block}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
-    font:15px/1.5 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    font:13px/1.6 'Pixel',ui-monospace,monospace;
     overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:none}
   #stage{position:fixed;inset:0;display:flex;flex-direction:column}
   #wrap{flex:1;position:relative;overflow:hidden}
@@ -37,8 +40,8 @@
     justify-content:center;pointer-events:none;opacity:0}
   /* Doggo Battles lettering: white caps, wide tracking, gold outline, no tilt */
   #toast span{
-    font-family:"Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;
-    font-weight:900;font-size:clamp(46px,12vw,124px);letter-spacing:.14em;
+    font-family:'Pixel',ui-monospace,monospace;
+    font-weight:400;font-size:clamp(38px,10vw,104px);letter-spacing:.14em;
     text-indent:.14em;color:#fff;
     -webkit-text-stroke:6px #e8a704;paint-order:stroke fill;
     text-shadow:0 6px 0 rgba(120,72,0,.55), 0 0 40px rgba(255,206,92,.6);
@@ -63,8 +66,6 @@
   #roster h2{margin:0;font-size:13px;letter-spacing:.24em;text-transform:uppercase;color:var(--cool)}
   #cards{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;
     max-width:1000px;max-height:66vh;overflow-y:auto;padding:4px}
-  @font-face{font-family:'Pixel';src:url(fonts/Grand9K-Pixel.ttf) format('truetype');
-    font-display:block}
   .card{width:126px;height:180px;position:relative;background:url(doggos/BARKcard.png) no-repeat;
     background-size:100% 100%;cursor:pointer;transition:transform .12s,filter .12s}
   .card.sel{transform:translateY(-4px);filter:drop-shadow(0 0 0 var(--doggo)) brightness(1.12)}
@@ -633,7 +634,8 @@ fill(144, GROUND_ROW-8, 4, 1, '#');                       // launch ledge, high 
 
 // ── 5. THE SPIKED BLOCK, middle-right of his map.
 fill(178, GROUND_ROW-3, 8, 3, '#');
-fill(178, GROUND_ROW-4, 8, 1, '^');
+for(let c = 170; c < 173; c++) put(c, kennelFloor(c) - 1, '^');   // on flat ground,
+                                                                  // jumpable by anyone
 
 // ── 6. THE RAMP (his triangle), run up it to reach the right wall.
 for(let i = 0; i < 18; i++) fill(206+i, GROUND_ROW-1-i, 2, i+2, '#');
@@ -2227,7 +2229,18 @@ function draw(){
   const rr0 = Math.max(0, Math.floor(oy/T)-2), rr1 = Math.min(MAP_H-1, Math.ceil((oy+VIEW_H)/T)+1);
   for(let r=rr0;r<=rr1;r++) for(let c=c0;c<=c1;c++){
     const t = grid[r][c], x = c*T-ox, y = r*T-oy;
-    if(t==='K'){
+    if(t==='^'){
+      const C = BIOMES[biome].C;
+      ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+      ctx.beginPath();
+      for(let i = 0; i < 3; i++){
+        const w = T/3, bx = x + i*w;
+        ctx.moveTo(bx, y + T); ctx.lineTo(bx + w/2, y + 3); ctx.lineTo(bx + w, y + T);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = C.earthEdge; ctx.lineWidth = OUT; ctx.stroke();
+      ctx.fillStyle = C.grass; ctx.fill();
+    } else if(t==='K'){
       const im = TERRAIN_IMG.kennel;
       if(im && im.complete && im.naturalWidth){
         const kh = KENNEL_H, kw = kh * im.naturalWidth / im.naturalHeight;
