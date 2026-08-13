@@ -1431,8 +1431,17 @@ function action(){
     return;
   }
   if(player.char.move === 'plasma' && orbs.length < 3){
-    orbs.push({ x: player.x + player.w/2 + player.face*10,
-                y: player.y + player.h*0.45, vx: player.face*ORB_SPEED, life: 2.4 });
+    const sx = player.x + player.w/2, sy = player.y + player.h*0.45;
+    let dx = player.face, dy = 0;
+    if(mouseX !== null){
+      dx = (mouseX + ox) - sx;                 // canvas -> world
+      dy = (mouseY + oy) - sy;
+      const d = Math.hypot(dx, dy) || 1;
+      dx /= d; dy /= d;
+      if(dx) player.face = Math.sign(dx);      // he turns to face the shot
+    }
+    orbs.push({ x: sx + dx*10, y: sy + dy*10,
+                vx: dx*ORB_SPEED, vy: dy*ORB_SPEED, life: 2.4 });
     snd('shoot');
   }
 }
@@ -1708,7 +1717,7 @@ function update(dt){
   // plasma orbs
   for(let i=orbs.length-1;i>=0;i--){
     const o = orbs[i];
-    o.x += o.vx*dt; o.life -= dt;
+    o.x += o.vx*dt; o.y += (o.vy||0)*dt; o.life -= dt;
     const c = Math.floor(o.x/T), r = Math.floor(o.y/T);
     const t = (c>=0&&c<MAP_W&&r>=0&&r<MAP_H) ? grid[r][c] : '#';
     if(t==='S'){ plasmaOpen = true; snd('barrier'); orbs.splice(i,1); continue; }
@@ -2325,7 +2334,10 @@ function draw(){
     ctx.beginPath(); ctx.arc(0, 0, 13, 0, 7); ctx.fill();
     if(im && im.complete && im.naturalWidth){
       const h = ORB_H, w = h * im.naturalWidth / im.naturalHeight;
-      if(o.vx < 0) ctx.scale(-1, 1);
+      // it can fly at any angle now, so point it along its travel -- and mirror
+      // rather than rotate past vertical, or it flies upside down going left
+      ctx.rotate(Math.atan2(o.vy || 0, o.vx));
+      if(o.vx < 0) ctx.scale(1, -1);
       ctx.drawImage(im, -w/2, -h/2, w, h);
     } else {
       ctx.fillStyle = '#f7d5ff';
