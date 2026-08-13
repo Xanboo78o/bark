@@ -649,10 +649,20 @@ put(232, GROUND_ROW-20, 'K');
 fill(230, GROUND_ROW-19, 8, 1, '#');                      // kennel shelf at its foot
 
 // ── 8. UPPER RIGHT: the stepped platforms, running back LEFT along the top.
-const STEPS = [[222,88],[212,84],[201,80],[189,78],[177,74],[164,72],[151,68],[139,66]];
-STEPS.forEach(([x,y]) => fill(x, y, 7, 2, '#'));
+const RUNS = [[196, 30, 88], [166, 32, 82], [138, 30, 76], [116, 24, 72]];
+RUNS.forEach(([x, w, y]) => fill(x, y, w, 2, '#'));
+// The joins. Runs overlap in x and sit 6 rows apart, so without these you'd be
+// looking at a 6-tile climb -- a normal jump only clears 2.77. A staircase of
+// 2-row steps, each 6 wide so there's room to land, turns the whole sky into a
+// walk with small hops instead of a chain of committed leaps.
+RUNS.forEach(([x, w, y], i) => {
+  const nxt = RUNS[i+1]; if(!nxt) return;
+  const ny = nxt[2];
+  for(let r = y - 2, k = 0; r > ny; r -= 2, k++) fill(x - 3 - k*3, r, 6, 2, '#');
+});
+fill(226, 90, 14, 2, '#');                                // the run off the wall-jump
 fill(196, 62, 6, 1, '#');                                 // a high shelf, coin on it
-put(206, 79, 'K');
+[[230,89],[210,87],[180,81],[150,75],[124,71]].forEach(([c,r]) => put(c, r, 'K'));
 
 // ── 9. THE TARGET, out in the open in the middle of the map. You need a clear
 // shot from the platforms — which means Plasma, and means standing still.
@@ -1500,14 +1510,21 @@ function rosterKey(e){
   if(e.code==='Enter'||e.code==='KeyE'||e.code==='Space') pickRoster();
   if(e.code==='Escape') closeRoster();
 }
+const KENNELS = [];
+for(let r=0;r<MAP_H;r++) for(let c=0;c<MAP_W;c++) if(grid[r][c]==='K') KENNELS.push({c,r});
+
 function nearKennel(){
   const cx = (player.x+player.w/2)/T, cy = (player.y+player.h/2)/T;
-  for(let r=0;r<MAP_H;r++) for(let c=0;c<MAP_W;c++)
-    if(grid[r][c]==='K' && Math.abs(c+0.5-cx)<1.4 && Math.abs(r+1-cy)<2){
-      checkX = c*T - 2; checkY = (r)*T - player.h;   // it's a checkpoint too
-      return {c,r};
-    }
+  for(const k of KENNELS)
+    if(Math.abs(k.c+0.5-cx)<1.4 && Math.abs(k.r+1-cy)<2) return k;
   return null;
+}
+
+// Walking past one banks it. It used to only happen when you pressed E, so a
+// kennel you passed without swapping at wasn't a checkpoint at all.
+function touchKennel(){
+  const k = nearKennel();
+  if(k){ checkX = k.c*T - 2; checkY = k.r*T - player.h; }
 }
 
 function reset(){
@@ -1608,6 +1625,8 @@ function update(dt){
   pushCrates(dt);
 
   const fellAt = player.vy;
+  player.fellFrom = player.onGround ? player.y
+                                    : Math.min(player.fellFrom ?? player.y, player.y);
   player.onGround = false;
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
@@ -1663,6 +1682,10 @@ function update(dt){
     if(player.stepPhase > 34){ player.stepPhase = 0; snd('step'); }
   } else player.stepPhase = 0;
   if(player.onGround && !player.wasGround && fellAt > 260) snd('land', fellAt);
+  // over ten tiles and the landing kills you
+  if(player.onGround && !player.wasGround && !player.gliding &&
+     player.y - (player.fellFrom ?? player.y) > 10*T){ respawn(); }
+  touchKennel();
   player.wasGround = player.onGround;
 
   if(player.digging){
