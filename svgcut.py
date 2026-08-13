@@ -128,8 +128,12 @@ def raw_paths(src):
             if len(pts) >= 2:
                 pts = [(x + tx, y + ty) for x, y in pts]
                 xs = [q[0] for q in pts]; ys = [q[1] for q in pts]
+                try:
+                    sw = float(attrs.get('stroke-width', 0))
+                except ValueError:
+                    sw = 0.0
                 out.append({'pts': pts, 'fill': top, 'fillLow': bot,
-                            'edge': attrs.get('stroke', 'none'),
+                            'edge': attrs.get('stroke', 'none'), 'sw': sw,
                             'box': (min(xs), min(ys), max(xs), max(ys))})
         for child in node:
             walk(child, attrs, tx, ty)
@@ -154,12 +158,13 @@ def convert_prop(src):
     norm = lambda pts: [[round((q[0]-x0)/sx, 4), round((q[1]-y0)/sy, 4)] for q in pts]
 
     big = max(paths, key=lambda p: (p['box'][2]-p['box'][0]) * (p['box'][3]-p['box'][1]))
+    # props carry their OWN outline at their own width — the game must not add one
     piece = {'w': round(sx, 2), 'h': round(sy, 2), 'fill': big['fill'],
-             'fillLow': big['fillLow'], 'edge': big['edge'],
+             'fillLow': big['fillLow'], 'edge': big['edge'], 'sw': big['sw'],
              'pts': norm(big['pts']),
              # kept in the order he drew them, so what he layered on top stays on top
              'on': [{'fill': p['fill'], 'fillLow': p['fillLow'], 'edge': p['edge'],
-                     'pts': norm(p['pts'])}
+                     'sw': p['sw'], 'pts': norm(p['pts'])}
                     for p in paths if p is not big]}
     return [piece]
 
