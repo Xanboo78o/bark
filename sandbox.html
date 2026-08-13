@@ -1796,6 +1796,27 @@ function drawDog(g,x,y,ch,face,phase,st){
     } else {
       g.drawImage(img, -dw/2, -dh + bob, dw, dh);
     }
+
+    // ── THE SWORD, drawn as its own sprite so it can move independently of him.
+    // A tap sweeps it forward through an arc; holding E levels it out in front so
+    // you can charge. The faded copies behind it are the recent angles, which is
+    // what makes a swing read as motion rather than a jump-cut.
+    const sw = ch.sword && IMG[ch.sword];
+    if(sw && sw.complete && sw.naturalWidth && st.arc && st.arc.length){
+      const blade = dh * 0.95;
+      const bw = sw.naturalWidth * (blade / sw.naturalHeight);
+      const px = dw*0.14, py = -dh*0.46 + bob;      // roughly his front shoulder
+      const put = (ang, alpha) => {
+        g.save(); g.globalAlpha = alpha;
+        g.translate(px, py); g.rotate(ang);
+        g.drawImage(sw, -bw/2, -blade*0.86, bw, blade);
+        g.restore();
+      };
+      for(let i = st.arc.length - 1; i > 0; i--)
+        put(st.arc[i], 0.13 * (1 - i/st.arc.length));
+      put(st.arc[0], 1);
+    }
+
     g.restore();
     return;
   }
