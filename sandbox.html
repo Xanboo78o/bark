@@ -589,17 +589,38 @@ fill(84, GROUND_ROW-7, 10, 2, '#');                       // the shelf
 fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, so you
                                                           // can't run at it from the right
 
-// ── 2c. THE SQUEEZE. A one-tile slot under a slab. Nothing else on the island
-// fits — this gate has been missing since Billie stopped being the small one.
-fill(100, GROUND_ROW-6, 14, 5, '#');                      // the slab
-                                                          // (its underside leaves a
-                                                          // single tile of clearance)
-// A kennel on the FAR side. Squeezing under is one-way -- you come out as Nano,
-// who can't break the crate beyond -- so without this you're sealed in.
-put(116, kennelFloor(116) - 1, 'K');
+// ── 2c. THE ELBOW PUZZLE. Five doggos, in order, each doing the one thing only
+// they can -- and the crates you build are what Alien finally jumps off.
+//
+//   1. Nano shrinks and crawls the one-tile slot ABOVE the crates, to see what's
+//      there. He can't do anything about it; he's the scout.
+//   2. Knight shoves the heavy block along -- nobody else can move it.
+//   3. Dalmatian hauls a crate and stacks it on the block: a two-tile step.
+//   4. Knight breaks the crates under the pillar, opening it to everyone, then
+//      breaks the 2x2 and finds a KENNEL behind it.
+//   5. That kennel is what lets you become Alien on this side. Off the stack,
+//      onto the elbow.
+//
+// Heights are measured, not guessed: Alien clears 4.68 tiles flat and 6.68 from a
+// two-tile stack, so the elbow top sits at 6 -- impossible without the stack,
+// comfortable with it.
 
-// ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
-fill(112, GROUND_ROW-4, 3, 4, '#');
+// the pillar, a tile higher than before so there's 2 tiles beneath it
+for(let c = 104; c < 118; c++)
+  fill(c, kennelFloor(c) - 7, 1, 5, '#');
+
+// 3 breakable crates filling the lower of those 2 tiles, leaving a single tile
+// above them -- shrunk Nano is 25px, a normal doggo is 34, a tile is 32
+
+// Knight's block, on the near side, to be shoved right
+
+// the 2x2, on the far side, with a kennel behind it
+put(124, kennelFloor(124) - 1, 'K');             // the reward for breaking through
+
+// THE ELBOW. Top surface 6 tiles up, and its face starts 3 columns past where the
+// stack can stand, which is inside Alien's horizontal reach of ~5.5 tiles.
+fill(127, kennelFloor(127) - 6, 8, 2, '#');
+fill(133, kennelFloor(133) - 6, 2, 6, '#');      // the down-stroke of the elbow
 
 // ── 4. THE CHASM. 9 wide — the airplane's gap. Spiked floor, so a miss costs
 // the climb back, not the run.
@@ -951,12 +972,43 @@ function pushCrates(dt){
 // sit each crate ON the wavy floor at its own column, rather than at a fixed row
 const floorAt = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
+// the elbow puzzle's crates. These have to live HERE, not up in the level
+// section -- that runs before CRATES exists and calling addCrate there throws
+// on load.
+[106, 109, 112].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
+addCrate(99, kennelFloor(99) - 1, 'heavy');       // Knight shoves this one
+addCrate(96, kennelFloor(96) - 1, 'crate');       // Dalmatian stacks this on it
+[[121,1],[121,2],[122,1],[122,2]].forEach(([c,d]) =>
+  addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
+
 onFloor(30, 'crate');
 onFloor(38, 'crate');
 onFloor(64, 'heavy');               // Knight/King only, by his button
 onFloor(90, 'crackedCrate');
 
 let carried = null;
+let swing = 0;                      // 0..1, drives the sword arc
+
+// Heavy melee. The only thing on the island it can break is a cracked crate --
+// which is exactly the point: Knight is how you open a way through, and nothing
+// else on the roster can do it.
+function knightSwing(){
+  if(player.char.id !== 'knight' && player.char.id !== 'king') return false;
+  if(swing > 0) return true;                  // already mid-swing
+  swing = 1;
+  sfx('bark', 0.6);
+  const dir = player.face > 0 ? 1 : -1;
+  const cx = Math.floor((player.x + player.w/2)/T);
+  const r0 = Math.floor(player.y/T), r1 = Math.floor((player.y + player.h - 1)/T);
+  let hit = false;
+  for(let d = 1; d <= 2; d++) for(let r = r0 - 1; r <= r1 + 1; r++){
+    const k = crateAt(cx + dir*d, r);
+    if(k && (k.kind === 'crackedCrate' || k.kind === 'crackedBlock')){
+      CRATES.splice(CRATES.indexOf(k), 1); hit = true; snd('pop');
+    }
+  }
+  return true;
+}
 function toggleCarry(){
   if(carried){                                   // set it down in front of you
     const dir = player.face > 0 ? 1 : -1;
@@ -1336,7 +1388,8 @@ document.querySelectorAll('#pad button').forEach(b => {
 function action(){
   if(rosterOpen) return;
   if(nearKennel()) { openRoster(); return; }
-  if(toggleCarry()) return;              // E doubles as pick up / put down
+  if(toggleCarry()) return;              // E is "use your thing":
+  if(knightSwing()) return;              // kennel, else carry, else swing
   if(player.char.move === 'zoom'){
     player.zoom = ZOOM_TIME;
     sfx('bark', 0.7); snd('zoomies');
@@ -1540,6 +1593,7 @@ function update(dt){
   player.y += player.vy*dt; collide('y');
 
   maxX = Math.max(maxX, player.x / T);
+  if(swing > 0) swing = Math.max(0, swing - dt*4);
   if(spiked()) respawn();
 
   // footsteps pace themselves off the walk cycle, so they speed up when he does
