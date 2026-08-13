@@ -594,6 +594,9 @@ fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, s
 fill(100, GROUND_ROW-6, 14, 5, '#');                      // the slab
                                                           // (its underside leaves a
                                                           // single tile of clearance)
+// A kennel on the FAR side. Squeezing under is one-way -- you come out as Nano,
+// who can't break the crate beyond -- so without this you're sealed in.
+put(116, kennelFloor(116) - 1, 'K');
 
 // ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
 fill(112, GROUND_ROW-4, 3, 4, '#');
@@ -1308,7 +1311,6 @@ addEventListener('keydown', e => {
   if(keys[e.code]) return; keys[e.code] = true;
   if(rosterOpen) rosterKey(e);
   else if(e.code==='KeyE') action();
-  if(e.code==='KeyR') reset();
   if(e.code==='KeyB' && !rosterOpen)
     setBiome(BIOME_NAMES[(BIOME_NAMES.indexOf(biome)+1) % BIOME_NAMES.length]);
   if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Space'].includes(e.code)) e.preventDefault();
@@ -1583,13 +1585,23 @@ function update(dt){
   // The hitbox is taken from the ART's own proportions, and his FEET stay planted
   // while it changes — grow with your head in a ceiling and you'd be shoved
   // through it, so a change that doesn't fit is simply refused.
-  const NANO_H = { '-1': 25, '0': 34, '1': 68 };
-  const want = ch.move === 'size' ? (D() ? -1 : U() ? 1 : 0) : 0;
-  if(ch.move === 'size' && want !== (player.size|0)){
-    const feet = player.y + player.h, nh = NANO_H[String(want)];
-    if(!blocked(ch, player.x, feet-nh, player.w, nh)){
-      player.size = want; player.h = nh; player.y = feet-nh;
+  // -1 small, 0 normal, +1 tall. Eased, not snapped, and the hitbox tracks it the
+  // whole way with his FEET planted — grow into a ceiling and the growth simply
+  // stalls there rather than shoving him through it.
+  const nanoH = v => v < 0 ? 34 + v*9 : 34 + v*34;      // 25 / 34 / 68
+  const want  = ch.move === 'size' ? (D() ? -1 : U() ? 1 : 0) : 0;
+  if(ch.move === 'size'){
+    const cur = player.size || 0;
+    if(Math.abs(want - cur) > 1e-3){
+      const step = Math.sign(want - cur) * dt * 4.4;
+      const next = Math.abs(step) > Math.abs(want-cur) ? want : cur + step;
+      const feet = player.y + player.h, nh = Math.round(nanoH(next));
+      if(!blocked(ch, player.x, feet-nh, player.w, nh)){
+        player.size = next; player.h = nh; player.y = feet-nh;
+      }
     }
+  } else if(player.size){                                // swapped away mid-stretch
+    player.size = 0; player.h = ch.h;
   }
   player.peri = 0;
 
@@ -1692,8 +1704,11 @@ function drawDog(g,x,y,ch,face,phase,st){
     // his three drawings aren't the same height on paper — tall is 2x normal and
     // small is 0.74x — so the drawn height has to follow the art, or all three
     // render identically and the whole ability becomes invisible
-    key   = st.size > 0 ? ch.artBig : st.size < 0 ? ch.artSmall : ch.art;
-    sizeK = st.size > 0 ? 2.01 : st.size < 0 ? 0.74 : 1;
+    // dh sets the DRAWN height outright, so this is just where he is right now:
+    // 0.74 fully small, 1 normal, 2.01 fully tall, and every value between.
+    const v = st.size || 0;
+    key   = v > 0.5 ? ch.artBig : v < -0.5 ? ch.artSmall : ch.art;
+    sizeK = v < 0 ? 1 + v*0.26 : 1 + v*1.01;
   }
   const img = key && IMG[key];
   if(img && img.complete && img.naturalWidth){
@@ -1705,7 +1720,7 @@ function drawDog(g,x,y,ch,face,phase,st){
     const tilt = st.gliding ? (st.pitch || 0) * 0.42   // banks with the nose
                : (moving ? Math.sin(phase)*0.045 : 0);
     g.save();
-    g.translate(x + ch.w/2, y + ch.h);
+    g.translate(x + ch.w/2, y + (st.h || ch.h));   // his ACTUAL feet, not the base
     g.rotate(tilt*(face<0?-1:1));
     g.scale(face<0?-1:1, 1);
     const N = ch.neck;
@@ -2160,7 +2175,7 @@ function draw(){
   ctx.save();
   ctx.translate(Math.round(player.x-ox), Math.round(player.y-oy));
   drawDog(ctx, 0, 0, player.char, player.face, player.phase,
-          {gliding:player.gliding, digging:player.digging, peri:player.peri, size:player.size,
+          {gliding:player.gliding, digging:player.digging, peri:player.peri, size:player.size, h:player.h,
            lifting:player.lifting, pitch:player.pitch,
            moving:Math.abs(player.vx) > 5 && player.coyote > 0});
   ctx.restore();
