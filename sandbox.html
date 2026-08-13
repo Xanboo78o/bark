@@ -571,17 +571,28 @@ fill(16, GROUND_ROW-1, 4, 1, '#');                        // the little start le
 // One before each gate and nowhere else. A kennel is a decision point -- scatter
 // them and they stop meaning "you need someone else for this".
 const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
+// build a horizontal band `up` tiles above the floor, following the wave: a
+// single fill() across a wavy floor pinches shut where it rises and floats where
+// it dips, which is what sealed the crawlspace and mis-set the elbow height
+const band = (x, w, up, h, ch) => {
+  for(let c = x; c < x + w; c++) fill(c, kennelFloor(c) - up, 1, h, ch);
+};
 [8, 40, 100, 138, 168, 218].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
 // x=40 is the one that matters: column 46 is a 4-tall Alien pillar, and the
 // nearest kennel used to be back at the start, so you met the gate with no way
 // to answer it.
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
-// ══ THE ELBOW PUZZLE, right after the second kennel. Five doggos in order, each
-// doing the one thing only they can, and the crates you build are what Alien
-// finally jumps off.
+fill(46, GROUND_ROW-5, 1, 5, '#');                        // THE BLOCK STACK: shove the
+                                                          // crates from 30 and 38 over
+                                                          // and climb them. Adam's
+                                                          // favourite -- leave it alone.
+
+// ══ THE ELBOW PUZZLE, after the block stack. Five doggos in order, each doing
+// the one thing only they can, and the crates you build are what Alien finally
+// jumps off.
 //   1. Nano shrinks and crawls the one-tile slot ABOVE the crates. He's the
-//      scout -- he can see what's there and do nothing about it.
+//      scout -- he sees what's there and can do nothing about it.
 //   2. Knight shoves the heavy block along. Nobody else moves it.
 //   3. Dalmatian hauls a crate and stacks it on the block: a two-tile step.
 //   4. Knight breaks the crates under the pillar, opening it to everyone, then
@@ -591,13 +602,13 @@ const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 // Heights are measured: Alien clears 4.68 tiles flat and 6.68 off a two-tile
 // stack, so the elbow top sits at 6 -- impossible without it, easy with it.
 
-for(let c = 48; c < 62; c++)                              // the floating pillar,
-  fill(c, kennelFloor(c) - 7, 1, 5, '#');                 // 2 tiles of gap beneath
+band(56, 12, 7, 5, '#');                                  // the floating pillar,
+                                                          // 2 tiles of gap beneath
 
-put(67, kennelFloor(67) - 1, 'K');                        // hidden behind the 2x2
+put(73, kennelFloor(73) - 1, 'K');                        // hidden behind the 2x2
 
-fill(70, kennelFloor(70) - 6, 9, 2, '#');                 // the elbow's top surface
-fill(77, kennelFloor(77) - 6, 2, 6, '#');                 // and its down-stroke
+band(75, 8, 6, 2, '#');                                   // the elbow's top surface
+band(81, 2, 6, 6, '#');                                   // and its down-stroke
 
 // ── 2b. THE STACK. A shelf at 6 tiles with a smooth face and nothing to jump
 // from: too high for Alien, no wall to kick off for Billie. Dalmatian hauls the
@@ -612,8 +623,7 @@ fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, s
 // small one. Built column by column against the REAL floor height: pinned to a
 // fixed row it left one tile of clearance where the floor was low and ZERO where
 // the wave lifted it, sealing the crawl shut halfway under.
-for(let c = 100; c < 114; c++)
-  fill(c, kennelFloor(c) - 6, 1, 5, '#');
+band(100, 14, 6, 5, '#');
 put(105, kennelFloor(105) - 1, 'K');             // before it
 put(116, kennelFloor(116) - 1, 'K');             // and on the FAR side -- squeezing
                                                  // under is one-way, so without this
@@ -972,15 +982,14 @@ const floorAt = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
 // the elbow puzzle's crates. They live HERE and not in the level section --
 // that runs before CRATES exists, and calling addCrate up there throws on load.
-[50, 53, 56].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
-addCrate(44, kennelFloor(44) - 1, 'heavy');       // Knight shoves this one right
-addCrate(41, kennelFloor(41) - 1, 'crate');       // Dalmatian stacks this on it
-[[64,1],[64,2],[65,1],[65,2]].forEach(([c,d]) =>
+[58, 61, 64].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
+addCrate(52, kennelFloor(52) - 1, 'heavy');       // Knight shoves this one right
+addCrate(50, kennelFloor(50) - 1, 'crate');       // Dalmatian stacks this on it
+[[70,1],[70,2],[71,1],[71,2]].forEach(([c,d]) =>
   addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
 
 onFloor(30, 'crate');
 onFloor(38, 'crate');
-onFloor(64, 'heavy');               // Knight/King only, by his button
 onFloor(90, 'crackedCrate');
 
 let carried = null;
