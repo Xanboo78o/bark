@@ -583,32 +583,9 @@ const band = (x, w, up, h, ch) => {
 // to answer it.
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
-fill(46, GROUND_ROW-5, 1, 5, '#');                        // THE BLOCK STACK: shove the
-                                                          // crates from 30 and 38 over
-                                                          // and climb them. Adam's
-                                                          // favourite -- leave it alone.
-
-// ══ THE ELBOW PUZZLE, after the block stack. Five doggos in order, each doing
-// the one thing only they can, and the crates you build are what Alien finally
-// jumps off.
-//   1. Nano shrinks and crawls the one-tile slot ABOVE the crates. He's the
-//      scout -- he sees what's there and can do nothing about it.
-//   2. Knight shoves the heavy block along. Nobody else moves it.
-//   3. Dalmatian hauls a crate and stacks it on the block: a two-tile step.
-//   4. Knight breaks the crates under the pillar, opening it to everyone, then
-//      breaks the 2x2 and finds a KENNEL behind it.
-//   5. That kennel is what lets you be Alien on this side. Off the stack, onto
-//      the elbow.
-// Heights are measured: Alien clears 4.68 tiles flat and 6.68 off a two-tile
-// stack, so the elbow top sits at 6 -- impossible without it, easy with it.
-
-band(56, 4, 7, 5, '#');                                  // the floating pillar,
-                                                          // 2 tiles of gap beneath
-
-put(73, kennelFloor(73) - 1, 'K');                        // hidden behind the 2x2
-
-band(75, 8, 6, 2, '#');                                   // the elbow's top surface
-band(81, 2, 6, 6, '#');                                   // and its down-stroke
+fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
+fill(70, GROUND_ROW-7, 2, 7, '#');                        // Knight's pillar
+put(71, GROUND_ROW-8, 'H');                               // the strength button
 
 // ── 2b. THE STACK. A shelf at 6 tiles with a smooth face and nothing to jump
 // from: too high for Alien, no wall to kick off for Billie. Dalmatian hauls the
@@ -618,17 +595,20 @@ fill(84, GROUND_ROW-7, 10, 2, '#');                       // the shelf
 fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, so you
                                                           // can't run at it from the right
 
-// ── 2c. THE SQUEEZE. A one-tile slot under a floating pillar. Nothing else on
-// the island fits -- this gate has been missing since Billie stopped being the
-// small one. Built column by column against the REAL floor height: pinned to a
-// fixed row it left one tile of clearance where the floor was low and ZERO where
-// the wave lifted it, sealing the crawl shut halfway under.
-band(100, 14, 6, 5, '#');
-put(105, kennelFloor(105) - 1, 'K');             // before it
-put(116, kennelFloor(116) - 1, 'K');             // and on the FAR side -- squeezing
-                                                 // under is one-way, so without this
-                                                 // you're sealed in as Nano
-fill(112, kennelFloor(112) - 10, 3, 4, '#');     // the elbow, clear of the crawl
+// ── 2c. THE SQUEEZE. A one-tile slot under a slab. Nothing else on the island
+// fits — this gate has been missing since Billie stopped being the small one.
+fill(100, GROUND_ROW-6, 14, 5, '#');                      // the slab
+                                                          // (its underside leaves a
+                                                          // single tile of clearance)
+// A kennel on the FAR side. Squeezing under is one-way -- you come out as Nano,
+// who can't break the crate beyond -- so without this you're sealed in.
+put(116, kennelFloor(116) - 1, 'K');
+
+// a 3-wide divot in the floor under the slab
+for(let c = 105; c < 108; c++) fill(c, kennelFloor(c), 1, 1, '.');
+
+// ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
+fill(112, GROUND_ROW-4, 3, 4, '#');
 
 // ── 4. THE CHASM. 9 wide — the airplane's gap. Spiked floor, so a miss costs
 // the climb back, not the run.
@@ -980,17 +960,13 @@ function pushCrates(dt){
 // sit each crate ON the wavy floor at its own column, rather than at a fixed row
 const floorAt = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
-// the elbow puzzle's crates. They live HERE and not in the level section --
-// that runs before CRATES exists, and calling addCrate up there throws on load.
-[58, 61, 64].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
-addCrate(52, kennelFloor(52) - 1, 'heavy');       // Knight shoves this one right
-addCrate(50, kennelFloor(50) - 1, 'crate');       // Dalmatian stacks this on it
-[[70,1],[70,2],[71,1],[71,2]].forEach(([c,d]) =>
-  addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
-
 onFloor(30, 'crate');
 onFloor(38, 'crate');
+onFloor(64, 'heavy');               // Knight/King only, by his button
 onFloor(90, 'crackedCrate');
+
+// 3 breakable crates, sitting in the divot
+[105, 106, 107].forEach(c => addCrate(c, kennelFloor(c), 'crackedCrate'));
 
 let carried = null;
 let swing = 0;                      // 1 -> 0 over a swing, drives the arc
