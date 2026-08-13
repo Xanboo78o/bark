@@ -356,6 +356,16 @@ const PIECES = {
   ],
 };
 
+
+// His props, traced the same way but as single objects — svgcut.py --prop.
+const PROPS = {
+  crate: { w:75.89, h:75.89, fill:'#f9c380', fillLow:'#f9c380', edge:'#c19763', pts:[[0.0,1.0],[0.0,0.0],[1.0,0.0],[1.0,1.0]], on:[{f:'none',e:'#c19763',p:[[0.0337,0.0079],[0.9767,0.9509]]},{f:'none',e:'#c19763',p:[[0.9831,0.0332],[0.021,0.9952]]}] },
+  heavy: { w:75.89, h:75.89, fill:'#656565', fillLow:'#656565', edge:'#424242', pts:[[0.0,1.0],[0.0,0.0],[1.0,0.0],[1.0,1.0]], on:[{f:'none',e:'#424242',p:[[0.1632,0.0255],[0.1632,0.9571]]},{f:'none',e:'#424242',p:[[0.8448,0.0212],[0.8448,0.9571]]},{f:'none',e:'#424242',p:[[0.5112,0.0429],[0.5112,0.9485]]}] },
+  crackedCrate: { w:75.89, h:75.89, fill:'#f9c380', fillLow:'#f9c380', edge:'#c19763', pts:[[0.0,1.0],[0.0,0.0],[1.0,0.0],[1.0,1.0]], on:[{f:'none',e:'#c19763',p:[[0.0337,0.0079],[0.9767,0.9509]]},{f:'none',e:'#c19763',p:[[0.9831,0.0332],[0.021,0.9952]]},{f:'none',e:'#806441',p:[[0.6868,0.0158],[0.5759,0.1788],[0.7455,0.381],[0.6933,0.5505]]},{f:'none',e:'#806441',p:[[0.1846,0.9842],[0.3053,0.8114]]},{f:'none',e:'#806441',p:[[0.2759,0.7723],[0.2009,0.6418],[0.2498,0.4527]]},{f:'none',e:'#806441',p:[[0.1879,0.6288],[0.0901,0.5799]]}] },
+  crackedBlock: { w:75.89, h:75.89, fill:'#868686', fillLow:'#868686', edge:'#545454', pts:[[0.0,1.0],[0.0,0.0],[1.0,0.0],[1.0,1.0]], on:[{f:'none',e:'#545454',p:[[0.6933,0.5505],[0.7455,0.381],[0.5759,0.1788],[0.6868,0.0158]]},{f:'none',e:'#545454',p:[[0.1846,0.9842],[0.3053,0.8114]]},{f:'none',e:'#545454',p:[[0.2759,0.7723],[0.2009,0.6418],[0.2498,0.4527]]},{f:'none',e:'#545454',p:[[0.0901,0.5799],[0.1879,0.6288]]}] },
+  target: { w:45.05, h:45.05, fill:'#ffffff', fillLow:'#ffffff', edge:'#ff0000', pts:[[0.0,0.5],[0.0065,0.4189],[0.0255,0.342],[0.0558,0.2702],[0.0965,0.2047],[0.1464,0.1464],[0.2047,0.0965],[0.2702,0.0558],[0.342,0.0255],[0.4189,0.0065],[0.5,0.0],[0.5811,0.0065],[0.658,0.0255],[0.7298,0.0558],[0.7953,0.0965],[0.8536,0.1464],[0.9035,0.2047],[0.9442,0.2702],[0.9745,0.342],[0.9935,0.4189],[1.0,0.5],[0.9935,0.5811],[0.9745,0.658],[0.9442,0.7298],[0.9035,0.7953],[0.8536,0.8536],[0.7953,0.9035],[0.7298,0.9442],[0.658,0.9745],[0.5811,0.9935],[0.5,1.0],[0.4189,0.9935],[0.342,0.9745],[0.2702,0.9442],[0.2047,0.9035],[0.1464,0.8536],[0.0965,0.7953],[0.0558,0.7298],[0.0255,0.658],[0.0065,0.5811]], on:[{f:'#ffffff',e:'#ff0000',p:[[0.2117,0.5],[0.2155,0.4532],[0.2264,0.4089],[0.2439,0.3675],[0.2673,0.3297],[0.2961,0.2961],[0.3297,0.2673],[0.3675,0.2439],[0.4089,0.2264],[0.4532,0.2155],[0.5,0.2117],[0.5468,0.2155],[0.5911,0.2264],[0.6325,0.2439],[0.6703,0.2673],[0.7039,0.2961],[0.7327,0.3297],[0.7561,0.3675],[0.7736,0.4089],[0.7845,0.4532],[0.7883,0.5],[0.7845,0.5468],[0.7736,0.5911],[0.7561,0.6325],[0.7327,0.6703],[0.7039,0.7039],[0.6703,0.7327],[0.6325,0.7561],[0.5911,0.7736],[0.5468,0.7845],[0.5,0.7883],[0.4532,0.7845],[0.4089,0.7736],[0.3675,0.7561],[0.3297,0.7327],[0.2961,0.7039],[0.2673,0.6703],[0.2439,0.6325],[0.2264,0.5911],[0.2155,0.5468]]},{f:'#ff0000',e:'none',p:[[0.3887,0.5],[0.3901,0.4819],[0.3944,0.4648],[0.4011,0.4488],[0.4102,0.4343],[0.4213,0.4213],[0.4343,0.4102],[0.4488,0.4011],[0.4648,0.3944],[0.4819,0.3901],[0.5,0.3887],[0.5181,0.3901],[0.5352,0.3944],[0.5512,0.4011],[0.5657,0.4102],[0.5787,0.4213],[0.5898,0.4343],[0.5989,0.4488],[0.6056,0.4648],[0.6099,0.4819],[0.6113,0.5],[0.6099,0.5181],[0.6056,0.5352],[0.5989,0.5512],[0.5898,0.5657],[0.5787,0.5787],[0.5657,0.5898],[0.5512,0.5989],[0.5352,0.6056],[0.5181,0.6099],[0.5,0.6113],[0.4819,0.6099],[0.4648,0.6056],[0.4488,0.5989],[0.4343,0.5898],[0.4213,0.5787],[0.4102,0.5657],[0.4011,0.5512],[0.3944,0.5352],[0.3901,0.5181]]}] },
+  targetDone: { w:45.05, h:45.05, fill:'#ffffff', fillLow:'#ffffff', edge:'#00d83b', pts:[[0.0,0.5],[0.0065,0.4189],[0.0255,0.342],[0.0558,0.2702],[0.0965,0.2047],[0.1464,0.1464],[0.2047,0.0965],[0.2702,0.0558],[0.342,0.0255],[0.4189,0.0065],[0.5,0.0],[0.5811,0.0065],[0.658,0.0255],[0.7298,0.0558],[0.7953,0.0965],[0.8536,0.1464],[0.9035,0.2047],[0.9442,0.2702],[0.9745,0.342],[0.9935,0.4189],[1.0,0.5],[0.9935,0.5811],[0.9745,0.658],[0.9442,0.7298],[0.9035,0.7953],[0.8536,0.8536],[0.7953,0.9035],[0.7298,0.9442],[0.658,0.9745],[0.5811,0.9935],[0.5,1.0],[0.4189,0.9935],[0.342,0.9745],[0.2702,0.9442],[0.2047,0.9035],[0.1464,0.8536],[0.0965,0.7953],[0.0558,0.7298],[0.0255,0.658],[0.0065,0.5811]], on:[{f:'#ffffff',e:'#00d83b',p:[[0.2117,0.5],[0.2155,0.4532],[0.2264,0.4089],[0.2439,0.3675],[0.2673,0.3297],[0.2961,0.2961],[0.3297,0.2673],[0.3675,0.2439],[0.4089,0.2264],[0.4532,0.2155],[0.5,0.2117],[0.5468,0.2155],[0.5911,0.2264],[0.6325,0.2439],[0.6703,0.2673],[0.7039,0.2961],[0.7327,0.3297],[0.7561,0.3675],[0.7736,0.4089],[0.7845,0.4532],[0.7883,0.5],[0.7845,0.5468],[0.7736,0.5911],[0.7561,0.6325],[0.7327,0.6703],[0.7039,0.7039],[0.6703,0.7327],[0.6325,0.7561],[0.5911,0.7736],[0.5468,0.7845],[0.5,0.7883],[0.4532,0.7845],[0.4089,0.7736],[0.3675,0.7561],[0.3297,0.7327],[0.2961,0.7039],[0.2673,0.6703],[0.2439,0.6325],[0.2264,0.5911],[0.2155,0.5468]]},{f:'#00d83b',e:'none',p:[[0.3887,0.5],[0.3901,0.4819],[0.3944,0.4648],[0.4011,0.4488],[0.4102,0.4343],[0.4213,0.4213],[0.4343,0.4102],[0.4488,0.4011],[0.4648,0.3944],[0.4819,0.3901],[0.5,0.3887],[0.5181,0.3901],[0.5352,0.3944],[0.5512,0.4011],[0.5657,0.4102],[0.5787,0.4213],[0.5898,0.4343],[0.5989,0.4488],[0.6056,0.4648],[0.6099,0.4819],[0.6113,0.5],[0.6099,0.5181],[0.6056,0.5352],[0.5989,0.5512],[0.5898,0.5657],[0.5787,0.5787],[0.5657,0.5898],[0.5512,0.5989],[0.5352,0.6056],[0.5181,0.6099],[0.5,0.6113],[0.4819,0.6099],[0.4648,0.6056],[0.4488,0.5989],[0.4343,0.5898],[0.4213,0.5787],[0.4102,0.5657],[0.4011,0.5512],[0.3944,0.5352],[0.3901,0.5181]]}] },
+};
 // NOTHING IS EVER STRETCHED (Adam's rule). One uniform scale for both axes, so
 // his shapes keep their proportions exactly as drawn; a rect that's taller than
 // it is wide gets a slab TURNED ON ITS SIDE, never a squashed one. Because the
@@ -641,7 +651,7 @@ function solidFor(ch, c, r){
   if(t==='d') return ch.move !== 'dig';
   if(t==='B') return !plasmaOpen;
   if(t==='R'){ const d = doorAt(c,r); return !(d && d.open); }
-  return false;
+  return !!crateAt(c, r);          // crates are solid to everything, including each other
 }
 const isDirt = (c,r) => c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='d';
 
@@ -673,6 +683,90 @@ function blocked(ch,x,y,w,h){
   const r0=Math.floor(y/T), r1=Math.floor((y+h-1)/T);
   for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) if(solidFor(ch,c,r)) return true;
   return false;
+}
+
+// ───────────────────────────────────────────── crates
+// Grid-snapped, but they fall. A crate always comes to rest on whole tiles, so a
+// puzzle built around one stays built; it just also drops, stacks and can be
+// dropped onto things. (Fully loose physics would let Billie's zoomies fire one
+// straight through the solution.)
+const CRATE_SLIDE = 0.09;   // seconds of visual catch-up after a shove
+const CRATE_FALL  = 0.07;   // seconds per tile of fall
+const PUSH_GAP    = 0.16;   // seconds between shoves, so one press = one tile
+
+const CRATES = [];
+function addCrate(c, r, kind, tw, th){
+  CRATES.push({ c, r, kind, tw: tw||2, th: th||2, ox:0, oy:0, fallT:0, pushT:0 });
+}
+function crateAt(c, r, skip){
+  for(const k of CRATES){
+    if(k === skip) continue;
+    if(c >= k.c && c < k.c + k.tw && r >= k.r && r < k.r + k.th) return k;
+  }
+  return null;
+}
+// can this crate occupy (c,r) as its top-left corner?
+function crateFits(k, c, r){
+  for(let i = 0; i < k.tw; i++) for(let j = 0; j < k.th; j++){
+    const cc = c+i, rr = r+j;
+    if(cc < 0 || cc >= MAP_W || rr < 0 || rr >= MAP_H) return false;
+    const t = grid[rr][cc];
+    if(t === '#' || t === 'd') return false;
+    if(t === 'B' && !plasmaOpen) return false;
+    if(t === 'R'){ const d = doorAt(cc,rr); if(!(d && d.open)) return false; }
+    if(crateAt(cc, rr, k)) return false;
+  }
+  return true;
+}
+
+// Heavy blocks are the Knight/King lock: everyone else just bounces off them.
+const canShove = (ch, k) => k.kind !== 'heavy' || ch.id === 'knight' || ch.id === 'king';
+
+function pushCrates(dt){
+  const dir = R() ? 1 : L() ? -1 : 0;
+  for(const k of CRATES){
+    k.pushT = Math.max(0, k.pushT - dt);
+    k.ox += (0 - k.ox) * Math.min(1, dt / CRATE_SLIDE);
+    k.oy += (0 - k.oy) * Math.min(1, dt / CRATE_SLIDE);
+
+    // fall one tile at a time
+    k.fallT += dt;
+    if(k.fallT >= CRATE_FALL){
+      k.fallT = 0;
+      if(crateFits(k, k.c, k.r + 1)){ k.r++; k.oy -= T; }
+    }
+  }
+  if(!dir || !player.onGround) return;
+
+  // the crate you're leaning on: the one your body overlaps just ahead of you
+  const nx = player.x + (dir > 0 ? player.w + 1 : -1);
+  const r0 = Math.floor(player.y / T), r1 = Math.floor((player.y + player.h - 1) / T);
+  for(let r = r0; r <= r1; r++){
+    const k = crateAt(Math.floor(nx / T), r);
+    if(!k || k.pushT > 0) continue;
+    if(!canShove(player.char, k)){ k.ox = dir * 2; continue; }   // a nudge, no give
+    if(crateFits(k, k.c + dir, k.r)){
+      k.c += dir; k.ox -= dir * T; k.pushT = PUSH_GAP;
+      snd('pop');
+    }
+    return;
+  }
+}
+
+// first crates, out on the opening flat so the verb teaches itself
+addCrate(8,  13, 'crate');
+addCrate(14, 13, 'heavy');          // Knight/King only
+addCrate(20, 13, 'crackedCrate');
+addCrate(26,  4, 'crate');          // starts in the air — shows they fall and stack
+
+function drawCrates(){
+  for(const k of CRATES){
+    const p = PROPS[k.kind];
+    if(!p) continue;
+    const x = k.c*T + k.ox, y = k.r*T + k.oy;
+    if(x - ox > VIEW_W + 80 || x - ox + k.tw*T < -80) continue;
+    drawPoly(p, x - ox, y - oy, k.tw*T, k.th*T, false);
+  }
 }
 
 function becomeDoggo(ch){
@@ -1214,6 +1308,8 @@ function update(dt){
     }
   }
 
+  pushCrates(dt);
+
   const fellAt = player.vy;
   player.onGround = false;
   player.x += player.vx*dt; collide('x');
@@ -1725,6 +1821,7 @@ function draw(){
   drawSky();
   drawTerrain();
   drawLooseDirt();
+  drawCrates();
 
   const c0 = Math.max(0, Math.floor(ox/T)-1), c1 = Math.min(MAP_W-1, Math.ceil((ox+VIEW_W)/T));
   const rr0 = Math.max(0, Math.floor(oy/T)-2), rr1 = Math.min(MAP_H-1, Math.ceil((oy+VIEW_H)/T)+1);
