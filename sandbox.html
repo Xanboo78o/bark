@@ -450,19 +450,16 @@ function drawPiece(r){
   // polygons win wherever they exist — they're the only way the outline stays put
   const poly = PIECES[biome];
   if(poly && poly.length){
-    // Orientation first, shape second. A piece he actually drew standing up beats
-    // a slab tipped onto its end every time — rotating is the fallback for a
-    // biome that has no pillar of its own, not the first choice.
-    const target = r.w / r.h, tall = r.h > r.w;
-    let list = poly.filter(c => (c.h > c.w) === tall), rot = false;
-    if(!list.length){ list = poly; rot = true; }
-
-    let best = list[0], bd = Infinity;
-    for(const c of list){
+    // Every piece is available in either orientation — a slab turned on its end is
+    // just as valid a pillar as one drawn that way. Try both ways up for all of
+    // them and take whichever shape fits the rect closest.
+    const target = r.w / r.h;
+    let best = poly[0], bestRot = false, bd = Infinity;
+    for(const c of poly) for(const rot of [false, true]){
       const d = Math.abs(Math.log(((rot ? c.h : c.w) / (rot ? c.w : c.h)) / target));
-      if(d < bd){ bd = d; best = c; }
+      if(d < bd){ bd = d; best = c; bestRot = rot; }
     }
-    drawPoly(best, r.x-ox, r.y-oy, r.w, r.h, rot);
+    drawPoly(best, r.x-ox, r.y-oy, r.w, r.h, bestRot);
     return true;
   }
 
