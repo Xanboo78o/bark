@@ -218,7 +218,8 @@ const CAST = [
     art:'Billie', bw:194, move:'zoom',
     atk:'?', spd:'?', ability:'ZOOMIES — press E. 45 seconds.', note:'yours' },
   { id:'nano', name:'Nano Doggo', col:'#f6a623', w:26, h:34, tag:'ADAM',
-    art:'Tall-Doggo', dh:44, bw:129, neck:{head:0.27, body:0.60}, move:'size',
+    art:'nanodoggonormal', artBig:'nanodoggotall', artSmall:'nanodoggosmall',
+    dh:44, move:'size',
     atk:'?', spd:'?', ability:'Shrink ↓ · Expand ↑', note:'yours' },
 
   { id:'plane', name:'Airplane Doggo', col:'#f5a623', w:26, h:34, tag:'ADAM',
@@ -246,7 +247,7 @@ const held_ = c => !c.locked && maxX >= c.needX;
 const byId = id => CAST.find(c => c.id === id);
 
 const IMG = {};
-CAST.forEach(c => [c.art, c.art2].filter(Boolean).forEach(n => {
+CAST.forEach(c => [c.art, c.art2, c.artBig, c.artSmall].filter(Boolean).forEach(n => {
   if(IMG[n]) return;
   const im = new Image();
   im.onload = () => drawCardArt();
@@ -1578,17 +1579,17 @@ function update(dt){
   // swells his head until he can reach a shelf nobody else gets to. The hitbox
   // follows, and his FEET stay put while it changes — grow with your head in the
   // ceiling and you'd otherwise be shoved through it.
+  // Three drawings, so three states rather than a slider: -1 small, 0, +1 tall.
+  // The hitbox is taken from the ART's own proportions, and his FEET stay planted
+  // while it changes — grow with your head in a ceiling and you'd be shoved
+  // through it, so a change that doesn't fit is simply refused.
+  const NANO_H = { '-1': 25, '0': 34, '1': 68 };
   const want = ch.move === 'size' ? (D() ? -1 : U() ? 1 : 0) : 0;
-  const prevSize = player.size || 0;
-  player.size = prevSize + Math.max(-dt*3.4, Math.min(dt*3.4, want - prevSize));
-  if(Math.abs(player.size - prevSize) > 1e-4){
-    const feet = player.y + player.h;
-    const nh = Math.round(ch.h * (player.size < 0 ? 1 + player.size*0.52
-                                                  : 1 + player.size*0.55));
-    const nw = Math.round(ch.w * (player.size < 0 ? 1 + player.size*0.30 : 1));
-    if(!blocked(ch, player.x + (player.w-nw)/2, feet-nh, nw, nh)){
-      player.x += (player.w-nw)/2; player.h = nh; player.w = nw; player.y = feet-nh;
-    } else player.size = prevSize;      // no room to change — stay as you are
+  if(ch.move === 'size' && want !== (player.size|0)){
+    const feet = player.y + player.h, nh = NANO_H[String(want)];
+    if(!blocked(ch, player.x, feet-nh, player.w, nh)){
+      player.size = want; player.h = nh; player.y = feet-nh;
+    }
   }
   player.peri = 0;
 
@@ -1685,10 +1686,18 @@ function shade(hex,amt){
 function drawDog(g,x,y,ch,face,phase,st){
   // Qorvex carries a second, torn-up drawing — flick to it now and then so he
   // never quite holds still.
-  const key = (ch.art2 && Math.floor(spin*2.4) % 11 === 0) ? ch.art2 : ch.art;
+  let key = (ch.art2 && Math.floor(spin*2.4) % 11 === 0) ? ch.art2 : ch.art;
+  let sizeK = 1;
+  if(ch.move === 'size'){
+    // his three drawings aren't the same height on paper — tall is 2x normal and
+    // small is 0.74x — so the drawn height has to follow the art, or all three
+    // render identically and the whole ability becomes invisible
+    key   = st.size > 0 ? ch.artBig : st.size < 0 ? ch.artSmall : ch.art;
+    sizeK = st.size > 0 ? 2.01 : st.size < 0 ? 0.74 : 1;
+  }
   const img = key && IMG[key];
   if(img && img.complete && img.naturalWidth){
-    const dh = st.dh || ch.dh || DOG_H;
+    const dh = (st.dh || ch.dh || DOG_H) * sizeK;
     const s  = dh / img.naturalHeight;
     const dw = img.naturalWidth * s;
     const moving = !!st.moving;
@@ -1700,23 +1709,6 @@ function drawDog(g,x,y,ch,face,phase,st){
     g.rotate(tilt*(face<0?-1:1));
     g.scale(face<0?-1:1, 1);
     const N = ch.neck;
-    const sz = st.size || 0;
-    if(N && Math.abs(sz) > 0.01){
-      // three slices. shrink pulls the legs in under him; expand blows the head
-      // up and leaves the body alone, so he reads as a balloon on little feet.
-      const iw = img.naturalWidth, ih = img.naturalHeight;
-      const hSrc = N.body*ih, bSrc = (1-N.body)*ih;
-      const headK = sz > 0 ? 1 + sz*1.15 : 1;
-      const legK  = sz < 0 ? 1 + sz*0.80 : 1;
-      const bodyH = hSrc*s*headK, legH = bSrc*s*legK;
-      const wK = sz > 0 ? 1 + sz*0.35 : 1 + sz*0.18;
-      g.drawImage(img, 0, 0, iw, hSrc,
-                  -dw*wK/2, -(bodyH+legH), dw*wK, bodyH);
-      g.drawImage(img, 0, hSrc, iw, bSrc,
-                  -dw/2, -legH, dw, legH);
-      g.restore();
-      return;
-    }
     if(N && st.peri > 0.01){
       const iw = img.naturalWidth, ih = img.naturalHeight, s = dh/ih;
       const hSrc = N.head*ih, nSrc = (N.body-N.head)*ih, bSrc = (1-N.body)*ih;
