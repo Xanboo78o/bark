@@ -521,72 +521,119 @@ let biome = 'grass';
 // ───────────────────────────────────────────── level
 // '.' air  '#' solid  'd' loose dirt  'K' kennel  'R' robo door
 // 'B' plasma barrier  'S' plasma target  'G' goal
-const MAP_W = 126, MAP_H = 21;
+const MAP_W = 252, MAP_H = 252;
+const GROUND_ROW = 232;                  // the wavy floor you start on
 const grid = Array.from({length:MAP_H}, () => Array(MAP_W).fill('.'));
 const fill = (x,y,w,h,ch) => { for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++)
   if(r>=0&&r<MAP_H&&c>=0&&c<MAP_W) grid[r][c]=ch; };
 const put = (x,y,ch) => fill(x,y,1,1,ch);
+const DARK = [];                         // lightless boxes — Miner's headlamp only
 
-fill(0,15,MAP_W,6,'#');          // ground slab, walking surface = row 15
+// ═══ THE TUTORIAL ISLAND ═══════════════════════════════════════════════════
+// Hand-placed from Adam's paper map. A LOOP: start bottom-left, run the whole
+// floor right, wall-jump up the right edge, cross back left along the top,
+// through the Door, into the dig tunnels, and out at End — which sits almost
+// directly below Start. Great Plateau: you can't leave until you've used
+// every verb once.
 
-// A — start
-put(7,14,'K');
+fill(0, GROUND_ROW+6, MAP_W, MAP_H-GROUND_ROW-6, '#');    // bedrock
+fill(0,0,4,MAP_H,'#'); fill(MAP_W-4,0,4,MAP_H,'#');       // island walls
+fill(0,0,MAP_W,2,'#');
 
-// B — a gap only a glide crosses (fall in and you walk the stairs back; that's the point)
-fill(14,15,9,5,'.');
-fill(14,16,1,5,'#'); fill(15,17,1,4,'#'); fill(16,18,1,3,'#'); fill(17,19,1,2,'#');
+// ── 1. THE FLOOR. Wavy, full width. Hand-stepped, not generated.
+const WAVE = [0,0,1,1,0,-1,-1,0,1,2,1,0,0,-1,0,1,1,0,-1,0,0,1,0,-1,-1,0,1,1,0,0];
+for(let i = 0, x = 4; x < MAP_W-4; i++, x += 8)
+  fill(x, GROUND_ROW + WAVE[i % WAVE.length], 8, 8, '#');
 
-// C — dig under the wall
-put(26,14,'K');
-fill(30,5,2,10,'#');
-fill(27,15,2,1,'d');
-fill(27,16,9,2,'.');
-fill(34,17,1,1,'#'); fill(35,16,1,2,'#');
-fill(33,15,3,1,'.');
+put(8, GROUND_ROW-1, 'K');                                // start kennel
+fill(6, GROUND_ROW-2, 4, 1, '#');                         // the little start ledge
 
-// D — a six-tile wall. Alien's big jump tops out at 4.7 tiles; only Zoomies clears it.
-put(40,14,'K');
-fill(45,9,9,6,'#');
+// ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
+fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
+fill(70, GROUND_ROW-7, 2, 7, '#');                        // Knight's pillar
+put(71, GROUND_ROW-8, 'H');                               // the strength button
 
-// E — robo door
-put(57,14,'K');
-fill(62,0,1,12,'#'); fill(62,12,1,3,'R');
+// ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
+fill(112, GROUND_ROW-4, 3, 4, '#');
+put(105, GROUND_ROW-1, 'K');
 
-// F — another glide gap
-put(66,14,'K');
-fill(72,15,9,5,'.');
-fill(72,16,1,5,'#'); fill(73,17,1,4,'#'); fill(74,18,1,3,'#'); fill(75,19,1,2,'#');
+// ── 4. THE CHASM. 9 wide — the airplane's gap. Spiked floor, so a miss costs
+// the climb back, not the run.
+fill(150, GROUND_ROW-1, 9, 9, '.');
+fill(150, GROUND_ROW+5, 9, 1, '^');
+fill(144, GROUND_ROW-8, 4, 1, '#');                       // launch ledge, high side
+put(140, GROUND_ROW-1, 'K');
 
-// G — five tiles: too far for a normal run-up, fine if you're fast
-put(84,14,'K');
-fill(88,15,5,5,'.');
-fill(88,16,1,5,'#'); fill(89,17,1,4,'#'); fill(90,18,1,3,'#');
+// ── 5. THE SPIKED BLOCK, middle-right of his map.
+fill(178, GROUND_ROW-3, 8, 3, '#');
+fill(178, GROUND_ROW-4, 8, 1, '^');
 
-// H — a four-tile wall. no ledge, no ramp. you either jump it or you don't
-put(97,14,'K');
-fill(102,11,2,4,'#');
+// ── 6. THE RAMP (his triangle), run up it to reach the right wall.
+for(let i = 0; i < 18; i++) fill(206+i, GROUND_ROW-1-i, 2, i+2, '#');
 
-// I — the window. stand on the ledge, put an orb through it, the barrier drops
-put(105,14,'K');
-fill(107,13,2,2,'#');            // firing ledge
-fill(112,8,1,4,'#');             // wall above the window
-fill(112,13,1,2,'B');            // barrier below it
-put(116,12,'S');                 // target
+// ── 7. THE WALL-JUMP ROUTE, up the far right edge. A bare shaft with nothing to
+// stand on: Billie's zoomies wall-kick is the only way up. WALL_KICK is small on
+// purpose, so holding INTO the wall re-contacts it and one face can be climbed.
+fill(238, 96, 10, GROUND_ROW-96, '#');                    // the face you kick off
+fill(228, 96, 2, 6, '#');                                 // the ledge you land on
+put(232, GROUND_ROW-20, 'K');
+fill(230, GROUND_ROW-19, 8, 1, '#');                      // kennel shelf at its foot
 
-// floating platforms — somewhere for Adam's blob pieces to live, and a high route
-fill(35,12,3,1,'#'); fill(67,11,3,1,'#'); fill(94,12,3,1,'#');
+// ── 8. UPPER RIGHT: the stepped platforms, running back LEFT along the top.
+const STEPS = [[222,88],[212,84],[201,80],[189,78],[177,74],[164,72],[151,68],[139,66]];
+STEPS.forEach(([x,y]) => fill(x, y, 7, 2, '#'));
+fill(196, 62, 6, 1, '#');                                 // a high shelf, coin on it
+put(206, 79, 'K');
 
-put(122,14,'G');
-fill(0,0,1,MAP_H,'#'); fill(MAP_W-1,0,1,MAP_H,'#');
+// ── 9. THE TARGET, out in the open in the middle of the map. You need a clear
+// shot from the platforms — which means Plasma, and means standing still.
+fill(120, 78, 10, 2, '#');                                // firing platform
+put(112, 74, 'S');                                        // the target itself
+
+// ── 10. THE DOOR, upper middle. Shooting the target drops it.
+fill(104, 52, 2, 22, '#');                                // wall above the door
+fill(104, 74, 2, 6, 'B');                                 // the barrier
+fill(96, 80, 10, 2, '#');                                 // landing beyond it
+put(99, 79, 'K');
+
+// ── 11. THE DIG TUNNELS. The whole left half is one dirt mass. You break in,
+// and THREE TILES LATER it forks — both ways dark, headlamp only. One way
+// carries on to End; the other is a pocket with the best coin on the island.
+fill(20, 84, 76, 116, 'd');                               // the mass itself
+fill(88, 84, 8, 8, '.');                                  // the mouth you enter by
+
+fill(84, 92, 4, 12, '.');                                 // the first three tiles,
+                                                          // lit, so the fork is a
+                                                          // choice and not a guess
+// the fork
+fill(60, 104, 26, 4, '.');                                // upper branch, heads left
+fill(80, 104, 4, 40, '.');                                // lower branch, heads down
+DARK.push([56, 100, 34, 12], [76, 104, 12, 44]);
+
+fill(40, 118, 22, 4, '.');                                // upper branch continues...
+fill(38, 118, 4, 26, '.');
+fill(30, 140, 12, 4, '.');                                // ...into the coin pocket
+DARK.push([36, 114, 28, 34], [26, 136, 18, 12]);
+
+fill(62, 144, 20, 4, '.');                                // lower branch swings left
+fill(58, 144, 6, 32, '.');                                // and drops toward End
+fill(40, 172, 22, 4, '.');
+DARK.push([54, 140, 32, 40], [36, 168, 28, 12]);
+
+// ── 12. END. Out of the dark, almost directly below where you started.
+fill(20, 176, 24, 4, '.');
+fill(20, 180, 24, 2, '#');
+put(26, 179, 'G');
+put(38, 179, 'K');
 
 // Hand-placed, one at a time, each somewhere a particular doggo can reach and the
 // others can't — the pit floors are the consolation prize for picking wrong.
 // [col, row, tier] — silver where anyone can reach, green behind an ability, red on
 // top of the two walls almost nobody gets over. Worth 20 all told.
 const COINS = [
-  [11,13,0], [19,19,0], [78,19,0], [120,13,0],
-  [31,17,1], [59,10,1], [68,10,1],
-  [49,8,2],  [102,10,2],
+  [30,229,0], [96,228,0], [168,229,0], [232,210,0],
+  [199,61,1], [124,77,1], [46,GROUND_ROW-7,1],
+  [34,139,2], [154,GROUND_ROW+4,2],
 ].map(([c,r,tier]) => ({ x:c*T + T/2, y:r*T + T/2, got:false, tier,
                          ph:(c*7 + r*3) % 12 }));
 const COIN_TOTAL = COINS.reduce((a,c) => a + COIN_TIERS[c.tier].value, 0);
@@ -626,7 +673,7 @@ function mergeRects(pred){
 }
 const ROCK = mergeRects((c,r) => grid[r][c]==='#');
 const DIRT = mergeRects((c,r) => grid[r][c]==='d');
-const SURFACE = 15*T;            // everything below this line is underground
+const SURFACE = GROUND_ROW*T;            // everything below this line is underground
 
 // anything standing PROUD of the ground line is a stone wall; anything sitting at
 // the ground line is earth with a grass cap; anything below it is buried earth.
@@ -644,7 +691,7 @@ ROCK.forEach(r => {
 
 // ───────────────────────────────────────────── player
 const player = {
-  char: byId('barkmc'), x: 3*T, y: 15*T-36, w:28, h:36,
+  char: byId('barkmc'), x: 8*T, y: (GROUND_ROW-3)*T-36, w:28, h:36,
   vx:0, vy:0, onGround:false, face:1, phase:0, coyote:0, buffer:0,
   gliding:false, digging:false, peri:0,
   zoom:0, wall:0, wallCoyote:0, trail:[],
@@ -693,6 +740,39 @@ function blocked(ch,x,y,w,h){
   const r0=Math.floor(y/T), r1=Math.floor((y+h-1)/T);
   for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) if(solidFor(ch,c,r)) return true;
   return false;
+}
+
+// ───────────────────────────────────────────── darkness
+// The dig fork is lightless. Everyone can walk into it; only Miner can see, and
+// only in the cone his headlamp throws. Being able to ENTER blind is the point —
+// you feel the wall, back out, and work out who to bring.
+function inDark(px, py){
+  for(const [x,y,w,h] of DARK)
+    if(px >= x*T && px < (x+w)*T && py >= y*T && py < (y+h)*T) return true;
+  return false;
+}
+function drawDark(){
+  const lit = player.char.move === 'dig';
+  let any = false;
+  for(const [x,y,w,h] of DARK){
+    const sx = x*T-ox, sy = y*T-oy;
+    if(sx > VIEW_W || sy > VIEW_H || sx+w*T < 0 || sy+h*T < 0) continue;
+    any = true;
+    ctx.fillStyle = '#000'; ctx.fillRect(sx, sy, w*T, h*T);
+  }
+  if(!any || !lit) return;
+  // punch the headlamp cone back out of the black
+  const hx = player.x + player.w/2 - ox, hy = player.y + 10 - oy;
+  const g = ctx.createRadialGradient(hx, hy, 8, hx, hy, 190);
+  g.addColorStop(0, 'rgba(255,240,200,.95)');
+  g.addColorStop(0.55, 'rgba(255,235,180,.35)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.save(); ctx.globalCompositeOperation = 'destination-out';
+  ctx.fillStyle = g;
+  ctx.beginPath(); ctx.moveTo(hx, hy);
+  const a = player.face > 0 ? 0 : Math.PI;
+  ctx.arc(hx, hy, 190, a - 0.62, a + 0.62); ctx.closePath(); ctx.fill();
+  ctx.restore();
 }
 
 // ───────────────────────────────────────────── crates
@@ -1231,7 +1311,7 @@ function reset(){
   coinsGot = 0; coinValue = 0; hudCoins.textContent = coinLabel();
   player.x = 3*T; player.vx = 0; player.vy = 0;
   becomeDoggo(byId('barkmc'));
-  player.y = 15*T - player.h;
+  player.y = (GROUND_ROW-3)*T - player.h;
   bannerEl.classList.remove('on'); cleared = false;
 }
 
@@ -1937,6 +2017,8 @@ function draw(){
                    player.y-oy+player.h*0.6+Math.sin(a)*11, 3,3);
     }
   }
+
+  drawDark();          // last, so the dark swallows the player too
 }
 
 // ───────────────────────────────────────────── loop
