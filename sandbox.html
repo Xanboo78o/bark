@@ -229,6 +229,20 @@ const CAST = [
     lamp:{ x:0.66, y:0.18 },          // where the helmet lamp sits in his drawing
     atk:'?', spd:'?', ability:'Digs loose dirt · headlamp', note:'yours' },
 ];
+// ── UNLOCK ORDER. The island hands you one doggo at a time, at the point where
+// you need them. Without this, Billie's zoomies -- roughly 8 tiles of jump plus a
+// wall kick -- walks over every height gate on the floor, so the whole tutorial
+// collapses into "be Billie". She's the LAST thing you get, by which point
+// there's nothing left for her to trivialise. maxX only ever grows, so heading
+// back left along the top keeps everything you earned on the way out.
+const UNLOCK = { barkmc:0, dalmatian:0, tall:0,
+                 alien:36, knight:55, cool:90, plane:130,
+                 cowboy:165, king:175, zombie:185, toxic:195,
+                 billie:205, plasma:215, digger:225 };
+CAST.forEach(c => c.needX = UNLOCK[c.id] ?? 0);
+let maxX = 0;
+const held_ = c => !c.locked && maxX >= c.needX;
+
 const byId = id => CAST.find(c => c.id === id);
 
 const IMG = {};
@@ -572,7 +586,11 @@ fill(112, GROUND_ROW-4, 3, 4, '#');
 // ── 4. THE CHASM. 9 wide — the airplane's gap. Spiked floor, so a miss costs
 // the climb back, not the run.
 fill(150, GROUND_ROW-1, 9, 9, '.');
-fill(150, GROUND_ROW+5, 9, 1, '^');
+fill(150, GROUND_ROW+6, 9, 2, '#');                       // a floor to land on -- the
+                                                          // spikes that were here made
+                                                          // a missed glide cost the run
+for(let i = 0; i < 5; i++)                                // steps back out, near side
+  fill(150, GROUND_ROW+5-i, 1+i, 1, '#');
 fill(144, GROUND_ROW-8, 4, 1, '#');                       // launch ledge, high side
 
 // ── 5. THE SPIKED BLOCK, middle-right of his map.
@@ -1330,7 +1348,7 @@ const cardCtx = [];
 
 CAST.forEach((c,i) => {
   const card = document.createElement('div');
-  card.className = 'card' + (c.locked ? ' lock' : '');
+  card.className = 'card' + (held_(c) ? '' : ' lock');
   const cv = document.createElement('canvas'); cv.width = 100; cv.height = 62;
   card.append(cv);
   const b = document.createElement('b'); b.textContent = c.name;
@@ -1374,7 +1392,7 @@ function openRoster(){
 function closeRoster(){ rosterOpen = false; rosterEl.classList.remove('on'); }
 function pickRoster(){
   const c = CAST[rosterSel];
-  if(c.locked) return;             // nobody gets Qorvex yet
+  if(!held_(c)) return;            // not rescued yet — and never Qorvex
   becomeDoggo(c); closeRoster();
 }
 function perRow(){
@@ -1501,6 +1519,7 @@ function update(dt){
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
 
+  maxX = Math.max(maxX, player.x / T);
   if(spiked()) respawn();
 
   // footsteps pace themselves off the walk cycle, so they speed up when he does
