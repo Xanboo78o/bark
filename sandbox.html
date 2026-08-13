@@ -991,6 +991,20 @@ function knightSwing(){
       CRATES.splice(CRATES.indexOf(k), 1); hit = true; snd('pop');
     }
   }
+
+  // A swing also SHOVES whatever's in front, heavy blocks included -- and it can
+  // knock one UP onto a one-tile ledge, which a straight push can't climb. That's
+  // what was stranding the heavy crate against a step.
+  for(let r = r0; r <= r1 + 1; r++){
+    const k = crateAt(cx + dir, r);
+    if(!k) continue;
+    if(crateFits(k, k.c + dir, k.r)){
+      k.c += dir; k.ox -= dir*T; k.pushT = PUSH_GAP;
+    } else if(crateFits(k, k.c + dir, k.r - 1)){
+      k.c += dir; k.r -= 1; k.ox -= dir*T; k.oy += T; k.pushT = PUSH_GAP;
+    }
+    break;
+  }
   return true;
 }
 function toggleCarry(){
