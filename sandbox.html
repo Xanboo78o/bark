@@ -604,8 +604,8 @@ fill(100, GROUND_ROW-6, 14, 5, '#');                      // the slab
 // who can't break the crate beyond -- so without this you're sealed in.
 put(116, kennelFloor(116) - 1, 'K');
 
-// a 3-wide divot in the floor under the slab
-for(let c = 105; c < 108; c++) fill(c, kennelFloor(c), 1, 1, '.');
+// a 3-wide divot in the floor at the foot of the pillar
+for(let c = 70; c < 73; c++) fill(c, kennelFloor(c), 1, 1, '.');
 
 // ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
 fill(112, GROUND_ROW-4, 3, 4, '#');
@@ -966,7 +966,7 @@ onFloor(64, 'heavy');               // Knight/King only, by his button
 onFloor(90, 'crackedCrate');
 
 // 3 breakable crates, sitting in the divot
-[105, 106, 107].forEach(c => addCrate(c, kennelFloor(c), 'crackedCrate'));
+[70, 71, 72].forEach(c => addCrate(c, kennelFloor(c), 'crackedCrate'));
 
 let carried = null;
 let swing = 0;                      // 1 -> 0 over a swing, drives the arc
@@ -1809,14 +1809,17 @@ function drawDog(g,x,y,ch,face,phase,st){
     // what makes a swing read as motion rather than a jump-cut.
     const sw = ch.sword && IMG[ch.sword];
     if(sw && sw.complete && sw.naturalWidth && st.arc && st.arc.length){
-      const blade = dh * 1.15;                      // tip clears his head, as drawn
+      // measured off his OLD Knight drawing, where the sword was part of the art:
+      // blade centre sat 25% of the sprite width behind him, hilt at 16% of his
+      // height, blade 38% of his height. Drawn any longer and it reads as a
+      // completely different weapon.
+      const blade = dh * 0.61;
       const bw = sw.naturalWidth * (blade / sw.naturalHeight);
-      const px = -dw*0.20, py = -dh*0.50 + bob;     // behind the shoulder, where his
-                                                    // old drawing had it
+      const px = -dw*0.253, py = -dh*0.158 + bob;   // the hilt, which is the pivot
       const put = (ang, alpha) => {
         g.save(); g.globalAlpha = alpha;
         g.translate(px, py); g.rotate(ang);
-        g.drawImage(sw, -bw/2, -blade*0.86, bw, blade);
+        g.drawImage(sw, -bw/2, -blade, bw, blade);   // hilt on the pivot
         g.restore();
       };
       for(let i = st.arc.length - 1; i > 0; i--)
