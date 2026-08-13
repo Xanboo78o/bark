@@ -577,7 +577,7 @@ const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 const band = (x, w, up, h, ch) => {
   for(let c = x; c < x + w; c++) fill(c, kennelFloor(c) - up, 1, h, ch);
 };
-[8, 40, 100, 138, 168, 218].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
+[8, 40, 64, 100, 138, 168, 218].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
 // x=40 is the one that matters: column 46 is a 4-tall Alien pillar, and the
 // nearest kennel used to be back at the start, so you met the gate with no way
 // to answer it.
@@ -602,7 +602,7 @@ fill(46, GROUND_ROW-5, 1, 5, '#');                        // THE BLOCK STACK: sh
 // Heights are measured: Alien clears 4.68 tiles flat and 6.68 off a two-tile
 // stack, so the elbow top sits at 6 -- impossible without it, easy with it.
 
-band(56, 12, 7, 5, '#');                                  // the floating pillar,
+band(56, 4, 7, 5, '#');                                  // the floating pillar,
                                                           // 2 tiles of gap beneath
 
 put(73, kennelFloor(73) - 1, 'K');                        // hidden behind the 2x2
