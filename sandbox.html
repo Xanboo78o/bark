@@ -588,35 +588,29 @@ fill(46, GROUND_ROW-5, 1, 5, '#');                        // THE BLOCK STACK: sh
                                                           // and climb them. Adam's
                                                           // favourite -- leave it alone.
 
-// ══ THE ELBOW PUZZLE, after the block stack. Five doggos in order, each doing
-// the one thing only they can, and the crates you build are what Alien finally
-// jumps off.
-//   1. Nano shrinks and crawls the one-tile slot ABOVE the crates. He's the
-//      scout -- he sees what's there and can do nothing about it.
-//   2. Knight shoves the heavy block along. Nobody else moves it.
-//   3. Dalmatian hauls a crate and stacks it on the block: a two-tile step.
-//   4. Knight breaks the crates under the pillar, opening it to everyone, then
-//      breaks the 2x2 and finds a KENNEL behind it.
-//   5. That kennel is what lets you be Alien on this side. Off the stack, onto
-//      the elbow.
-// Heights are measured: Alien clears 4.68 tiles flat and 6.68 off a two-tile
-// stack, so the elbow top sits at 6 -- impossible without it, easy with it.
+// ══ THE ELBOW PUZZLE — built from Adam's second sketch, left to right.
+//   kennel · thin block with the hook over it · kennel · three crates with a
+//   NARROW floating pillar above them · a crate to shove · a cracked one · the
+//   2x2 · and the big elbow, whose arm you land on and whose descender is the
+//   wall you're getting over.
+// Every horizontal piece goes through band() so it follows the wavy floor.
 
-band(56, 12, 7, 5, '#');                                  // the floating pillar,
-                                                          // 2 tiles of gap beneath
+put(42, kennelFloor(42) - 1, 'K');                        // kennel before it all
+band(45, 2, 5, 5, '#');                                   // the thin tall block
+band(45, 8, 9, 2, '#');                                   // the hook arching over it
 
-put(73, kennelFloor(73) - 1, 'K');                        // hidden behind the 2x2
+put(54, kennelFloor(54) - 1, 'K');                        // the kennel I deleted --
+                                                          // it's in his drawing
 
-band(75, 8, 6, 2, '#');                                   // the elbow's top surface
-band(81, 2, 6, 6, '#');                                   // and its down-stroke
+band(59, 4, 7, 5, '#');                                   // THE PILLAR: narrow, not
+                                                          // the 12-wide slab I built,
+                                                          // with 2 tiles of gap under
 
-// ── 2b. THE STACK. A shelf at 6 tiles with a smooth face and nothing to jump
-// from: too high for Alien, no wall to kick off for Billie. Dalmatian hauls the
-// crates over one at a time and stacks them into a staircase. The crates for it
-// are the ones back at 30 and 38 -- so the puzzle is the carrying, not the finding.
-fill(84, GROUND_ROW-7, 10, 2, '#');                       // the shelf
-fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, so you
-                                                          // can't run at it from the right
+// THE ELBOW. Arm at 6 tiles -- Alien clears 4.68 flat and 6.68 off a two-tile
+// stack, so it needs the stack and is comfortable with it. The descender is the
+// wall; getting over it is the whole point.
+band(70, 20, 6, 2, '#');
+band(87, 3, 6, 6, '#');
 
 // ── 2c. THE SQUEEZE. A one-tile slot under a floating pillar. Nothing else on
 // the island fits -- this gate has been missing since Billie stopped being the
@@ -982,10 +976,11 @@ const floorAt = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
 const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
 // the elbow puzzle's crates. They live HERE and not in the level section --
 // that runs before CRATES exists, and calling addCrate up there throws on load.
-[58, 61, 64].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
-addCrate(52, kennelFloor(52) - 1, 'heavy');       // Knight shoves this one right
-addCrate(50, kennelFloor(50) - 1, 'crate');       // Dalmatian stacks this on it
-[[70,1],[70,2],[71,1],[71,2]].forEach(([c,d]) =>
+[59, 60, 61].forEach(c => addCrate(c, kennelFloor(c) - 2, 'crackedCrate'));
+addCrate(66, kennelFloor(66) - 1, 'heavy');       // the one Knight shoves
+addCrate(69, kennelFloor(69) - 1, 'crackedCrate');
+addCrate(56, kennelFloor(56) - 1, 'crate');       // Dalmatian stacks this
+[[79,1],[79,2],[80,1],[80,2]].forEach(([c,d]) =>
   addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
 
 onFloor(30, 'crate');
