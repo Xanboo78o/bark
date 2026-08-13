@@ -552,9 +552,10 @@ fill(16, GROUND_ROW-2, 4, 1, '#');                        // the little start le
 // ── KENNELS. Pinned to the REAL floor height at each column, never a fixed row:
 // the floor is wavy, so a fixed row buries them wherever it dips. Thick on the
 // ground because swapping IS the game -- you should never be far from a change.
+// One before each gate and nowhere else. A kennel is a decision point -- scatter
+// them and they stop meaning "you need someone else for this".
 const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
-[8, 26, 42, 58, 76, 92, 105, 120, 134, 140, 162, 174, 190, 200, 226, 240]
-  .forEach(c => put(c, kennelFloor(c) - 1, 'K'));
+[8, 60, 104, 142, 172, 222].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
 fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
@@ -636,12 +637,42 @@ put(38, 179, 'K');
 // others can't — the pit floors are the consolation prize for picking wrong.
 // [col, row, tier] — silver where anyone can reach, green behind an ability, red on
 // top of the two walls almost nobody gets over. Worth 20 all told.
-const COINS = [
-  [30,229,0], [96,228,0], [168,229,0], [232,210,0],
-  [199,61,1], [124,77,1], [46,GROUND_ROW-7,1],
-  [34,139,2], [154,GROUND_ROW+4,2],
-].map(([c,r,tier]) => ({ x:c*T + T/2, y:r*T + T/2, got:false, tier,
-                         ph:(c*7 + r*3) % 12 }));
+// Coins are the level's signposting. A run of them along the ground just says
+// "keep going"; an ARC over a gap says "jump here, from about there"; a vertical
+// line up a blank wall says "this is climbable, and you'll need someone who can".
+// Mario has taught everyone to read these without being told.
+const COINS = [];
+const coin = (c, r, tier) => {
+  const t = grid[r] && grid[r][c];                 // a trail run along the floor
+  if(t === '#' || t === 'd' || t === undefined) return;   // walks into pillars --
+  COINS.push({ x:c*T + T/2, y:r*T + T/2, got:false,       // drop those rather than
+               tier, ph:(c*7 + r*3) % 12 });               // bury them in rock
+};
+const floorY = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
+
+// breadcrumbs along the whole floor: the tutorial's "this way"
+for(let c = 16; c < 244; c += 6) if(c < 148 || c > 160) coin(c, floorY(c) - 3, 0);
+
+// an ARC over Alien's ledge -- peaks above what a normal jump reaches
+[[108,-5],[110,-7],[112,-8],[114,-7],[116,-5]].forEach(([c,d]) => coin(c, floorY(c)+d, 1));
+
+// an arc across the airplane chasm, sagging like his glide actually does
+[[148,-9],[151,-8],[154,-7],[157,-6],[160,-5]].forEach(([c,d]) => coin(c, floorY(c)+d, 1));
+
+// a vertical line up the wall-jump face: the only thing telling you it's climbable
+for(let r = GROUND_ROW-24; r > 100; r -= 5) coin(235, r, 1);
+
+// a trail along the stepped platforms, back left toward the Target
+[[222,86],[212,82],[201,78],[189,76],[177,72],[164,70],[151,66],[139,64]]
+  .forEach(([c,r]) => coin(c, r, 1));
+coin(199, 60, 2);                       // the high shelf above the steps
+
+// into the dig fork -- and the pocket branch pays the best on the island
+[[86,90],[84,96],[82,100]].forEach(([c,r]) => coin(c, r, 0));
+[[70,106],[64,106],[50,120],[44,120],[34,142]].forEach(([c,r]) => coin(c, r, 1));
+coin(32, 142, 2);
+[[78,120],[78,132],[70,146],[62,158],[48,174]].forEach(([c,r]) => coin(c, r, 1));
+coin(24, 178, 2);                       // sitting on End
 const COIN_TOTAL = COINS.reduce((a,c) => a + COIN_TIERS[c.tier].value, 0);
 let coinsGot = 0, coinValue = 0;
 const coinLabel = () => `${coinsGot}/${COINS.length} found · ${coinValue} coins`;
@@ -714,6 +745,7 @@ function solidFor(ch, c, r){
   if(t==='d') return ch.move !== 'dig';
   if(t==='B') return !plasmaOpen;
   if(t==='R'){ const d = doorAt(c,r); return !(d && d.open); }
+  if(t==='^') return false;              // spikes kill, they don't block
   return !!crateAt(c, r);          // crates are solid to everything, including each other
 }
 const isDirt = (c,r) => c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='d';
@@ -779,6 +811,23 @@ function drawDark(){
   const a = player.face > 0 ? 0 : Math.PI;
   ctx.arc(hx, hy, 190, a - 0.62, a + 0.62); ctx.closePath(); ctx.fill();
   ctx.restore();
+}
+
+// ───────────────────────────────────────────── spikes
+// A pit you can't climb out of has to kill you, or it's just a trap. Respawn is
+// the LAST KENNEL you touched, so the cost is the walk back and nothing else.
+let checkX = 8*T, checkY = 0;
+function spiked(){
+  const c0=Math.floor((player.x+4)/T), c1=Math.floor((player.x+player.w-5)/T);
+  const r0=Math.floor((player.y+4)/T), r1=Math.floor((player.y+player.h-3)/T);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++)
+    if(c>=0&&c<MAP_W&&r>=0&&r<MAP_H&&grid[r][c]==='^') return true;
+  return false;
+}
+function respawn(){
+  player.x = checkX; player.y = checkY;
+  player.vx = player.vy = 0; player.zoom = 0; player.flightT = 0; player.lift = 0;
+  snd('pop');
 }
 
 // ───────────────────────────────────────────── crates
@@ -1309,7 +1358,10 @@ function rosterKey(e){
 function nearKennel(){
   const cx = (player.x+player.w/2)/T, cy = (player.y+player.h/2)/T;
   for(let r=0;r<MAP_H;r++) for(let c=0;c<MAP_W;c++)
-    if(grid[r][c]==='K' && Math.abs(c+0.5-cx)<1.4 && Math.abs(r+1-cy)<2) return {c,r};
+    if(grid[r][c]==='K' && Math.abs(c+0.5-cx)<1.4 && Math.abs(r+1-cy)<2){
+      checkX = c*T - 2; checkY = (r)*T - player.h;   // it's a checkpoint too
+      return {c,r};
+    }
   return null;
 }
 
@@ -1414,6 +1466,8 @@ function update(dt){
   player.onGround = false;
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
+
+  if(spiked()) respawn();
 
   // footsteps pace themselves off the walk cycle, so they speed up when he does
   if(player.onGround && Math.abs(player.vx) > 25 && !player.digging){
