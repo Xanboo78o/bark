@@ -217,9 +217,9 @@ const CAST = [
   { id:'billie', name:'Billie', col:'#ff7fbf', w:26, h:34, tag:'ADAM',
     art:'Billie', bw:194, move:'zoom',
     atk:'?', spd:'?', ability:'ZOOMIES — press E. 45 seconds.', note:'yours' },
-  { id:'tall', name:'Tall Doggo', col:'#f6a623', w:26, h:34, tag:'ADAM',
-    art:'Tall-Doggo', dh:60, bw:129, neck:{head:0.27, body:0.60}, move:'look',
-    atk:'?', spd:'?', ability:'Periscope — hold ↑ to see ahead', note:'yours' },
+  { id:'nano', name:'Nano Doggo', col:'#f6a623', w:26, h:34, tag:'ADAM',
+    art:'Tall-Doggo', dh:44, bw:129, neck:{head:0.27, body:0.60}, move:'size',
+    atk:'?', spd:'?', ability:'Shrink ↓ · Expand ↑', note:'yours' },
 
   { id:'plane', name:'Airplane Doggo', col:'#f5a623', w:26, h:34, tag:'ADAM',
     art:'Airplane-Doggo', bw:261, move:'glide',
@@ -235,7 +235,7 @@ const CAST = [
 // collapses into "be Billie". She's the LAST thing you get, by which point
 // there's nothing left for her to trivialise. maxX only ever grows, so heading
 // back left along the top keeps everything you earned on the way out.
-const UNLOCK = { barkmc:0, dalmatian:0, tall:0,
+const UNLOCK = { barkmc:0, dalmatian:0, nano:0,
                  alien:36, knight:55, cool:90, plane:130,
                  cowboy:165, king:175, zombie:185, toxic:195,
                  billie:205, plasma:215, digger:225 };
@@ -580,6 +580,20 @@ fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't ma
 fill(70, GROUND_ROW-7, 2, 7, '#');                        // Knight's pillar
 put(71, GROUND_ROW-8, 'H');                               // the strength button
 
+// ── 2b. THE STACK. A shelf at 6 tiles with a smooth face and nothing to jump
+// from: too high for Alien, no wall to kick off for Billie. Dalmatian hauls the
+// crates over one at a time and stacks them into a staircase. The crates for it
+// are the ones back at 30 and 38 -- so the puzzle is the carrying, not the finding.
+fill(84, GROUND_ROW-7, 10, 2, '#');                       // the shelf
+fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, so you
+                                                          // can't run at it from the right
+
+// ── 2c. THE SQUEEZE. A one-tile slot under a slab. Nothing else on the island
+// fits — this gate has been missing since Billie stopped being the small one.
+fill(100, GROUND_ROW-6, 14, 5, '#');                      // the slab
+                                                          // (its underside leaves a
+                                                          // single tile of clearance)
+
 // ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
 fill(112, GROUND_ROW-4, 3, 4, '#');
 
@@ -892,10 +906,12 @@ const canShove = (ch, k) => k.kind !== 'heavy' || ch.id === 'knight' || ch.id ==
 
 function pushCrates(dt){
   const dir = R() ? 1 : L() ? -1 : 0;
-  if(carried){                                   // ride above his head
+  if(carried){
+    // on his BACK, not over his head: sat behind the shoulder and riding low
     carried.c = Math.floor((player.x + player.w/2)/T);
-    carried.r = Math.floor(player.y/T) - 1;
-    carried.ox = carried.oy = 0;
+    carried.r = Math.floor(player.y/T);
+    carried.ox = -player.face * 9;
+    carried.oy = -18;
   }
   for(const k of CRATES){
     if(k === carried) continue;
@@ -949,7 +965,7 @@ function toggleCarry(){
       }
     return false;
   }
-  if(player.char.id !== 'barkmc') return false;
+  if(player.char.id !== 'dalmatian') return false;
   const dir = player.face > 0 ? 1 : -1;
   const c = Math.floor((player.x + player.w/2)/T) + dir;
   for(let r = Math.floor(player.y/T); r <= Math.floor((player.y+player.h)/T); r++){
@@ -1381,6 +1397,7 @@ function drawRoster(){
   [...cardsEl.children].forEach((el,i) => {
     const on = i===rosterSel;
     el.classList.toggle('sel', on);
+    el.classList.toggle('lock', !held_(CAST[i]));   // recheck: you've walked since
     if(on) el.scrollIntoView({block:'nearest'});
   });
 }
@@ -1557,9 +1574,23 @@ function update(dt){
     if(hard || o.life<=0) orbs.splice(i,1);
   }
 
-  // periscope — coyote, not onGround: standing still makes onGround flicker frame to frame
-  const wantPeri = ch.move==='look' && player.coyote > 0 && Math.abs(player.vx) < 12 && U();
-  player.peri = Math.max(0, Math.min(1, player.peri + (wantPeri ? dt*2.2 : -dt*3.2)));
+  // ── NANO. Shrinking pulls his legs in until he fits a one-tile gap; expanding
+  // swells his head until he can reach a shelf nobody else gets to. The hitbox
+  // follows, and his FEET stay put while it changes — grow with your head in the
+  // ceiling and you'd otherwise be shoved through it.
+  const want = ch.move === 'size' ? (D() ? -1 : U() ? 1 : 0) : 0;
+  const prevSize = player.size || 0;
+  player.size = prevSize + Math.max(-dt*3.4, Math.min(dt*3.4, want - prevSize));
+  if(Math.abs(player.size - prevSize) > 1e-4){
+    const feet = player.y + player.h;
+    const nh = Math.round(ch.h * (player.size < 0 ? 1 + player.size*0.52
+                                                  : 1 + player.size*0.55));
+    const nw = Math.round(ch.w * (player.size < 0 ? 1 + player.size*0.30 : 1));
+    if(!blocked(ch, player.x + (player.w-nw)/2, feet-nh, nw, nh)){
+      player.x += (player.w-nw)/2; player.h = nh; player.w = nw; player.y = feet-nh;
+    } else player.size = prevSize;      // no room to change — stay as you are
+  }
+  player.peri = 0;
 
   if(player.zoom > 0){
     player.zoom = Math.max(0, player.zoom - dt);
@@ -1669,6 +1700,23 @@ function drawDog(g,x,y,ch,face,phase,st){
     g.rotate(tilt*(face<0?-1:1));
     g.scale(face<0?-1:1, 1);
     const N = ch.neck;
+    const sz = st.size || 0;
+    if(N && Math.abs(sz) > 0.01){
+      // three slices. shrink pulls the legs in under him; expand blows the head
+      // up and leaves the body alone, so he reads as a balloon on little feet.
+      const iw = img.naturalWidth, ih = img.naturalHeight;
+      const hSrc = N.body*ih, bSrc = (1-N.body)*ih;
+      const headK = sz > 0 ? 1 + sz*1.15 : 1;
+      const legK  = sz < 0 ? 1 + sz*0.80 : 1;
+      const bodyH = hSrc*s*headK, legH = bSrc*s*legK;
+      const wK = sz > 0 ? 1 + sz*0.35 : 1 + sz*0.18;
+      g.drawImage(img, 0, 0, iw, hSrc,
+                  -dw*wK/2, -(bodyH+legH), dw*wK, bodyH);
+      g.drawImage(img, 0, hSrc, iw, bSrc,
+                  -dw/2, -legH, dw, legH);
+      g.restore();
+      return;
+    }
     if(N && st.peri > 0.01){
       const iw = img.naturalWidth, ih = img.naturalHeight, s = dh/ih;
       const hSrc = N.head*ih, nSrc = (N.body-N.head)*ih, bSrc = (1-N.body)*ih;
@@ -2120,7 +2168,7 @@ function draw(){
   ctx.save();
   ctx.translate(Math.round(player.x-ox), Math.round(player.y-oy));
   drawDog(ctx, 0, 0, player.char, player.face, player.phase,
-          {gliding:player.gliding, digging:player.digging, peri:player.peri,
+          {gliding:player.gliding, digging:player.digging, peri:player.peri, size:player.size,
            lifting:player.lifting, pitch:player.pitch,
            moving:Math.abs(player.vx) > 5 && player.coyote > 0});
   ctx.restore();
