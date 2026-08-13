@@ -592,6 +592,7 @@ put(71, GROUND_ROW-8, 'H');                               // the strength button
 // crates over one at a time and stacks them into a staircase. The crates for it
 // are the ones back at 30 and 38 -- so the puzzle is the carrying, not the finding.
 fill(84, GROUND_ROW-7, 10, 2, '#');                       // the shelf
+put(93, kennelFloor(93) - 1, 'K');                        // behind the 2x2
 fill(94, GROUND_ROW-7, 2, 7, '#');                        // and its far wall, so you
                                                           // can't run at it from the right
 
@@ -963,6 +964,7 @@ const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
 onFloor(30, 'crate');
 onFloor(38, 'crate');
 onFloor(64, 'heavy');               // Knight/King only, by his button
+addCrate(87, kennelFloor(87) - 1, 'crate');       // the normal one, before them
 [[90,1],[90,2],[91,1],[91,2]].forEach(([c,d]) =>
   addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
 
