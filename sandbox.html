@@ -192,34 +192,34 @@ const CAST = [
     note:'you · the one that got away' },
   { id:'dalmatian', name:'Dalmatian Doggo', col:'#e9e9ee', hat:'spots', w:26, h:34, tag:'DB',
     art:'Dalmatian-Doggo', bw:260,
-    atk:'Normal', spd:'Normal', ability:'None', note:'#2 · runs a shop' },
+    atk:'Normal', spd:'Normal', ability:'Carries crates — E to lift, E to drop', note:'#2 · runs a shop' },
   { id:'cowboy', name:'Cowboy Doggo', col:'#c98a4b', hat:'cowboy', w:26, h:34, tag:'DB',
     art:'Cowboy-Doggo', dh:50, bw:201,
-    atk:'High', spd:'Normal', ability:'Extra damage', note:'#3' },
+    atk:'High', spd:'Normal', ability:'Extra damage (quick draw to come)', note:'#3' },
   { id:'knight', name:'Knight Doggo', col:'#9aa4b8', hat:'helm', w:26, h:34, tag:'DB',
     art:'KnightDoggo2', sword:'KnightSword', dh:46, bw:219, speedMul:0.62,
-    atk:'High', spd:'Slow', ability:'Swing E · hold E to charge',
+    atk:'High', spd:'Slow', ability:'E swings · hold E to charge',
     note:'#4 · from Doggo Quest, year 1300' },
   { id:'alien', name:'Alien Doggo', col:'#7ee081', hat:'antenna', w:26, h:34, tag:'DB',
     art:'Alien-Doggo', dh:51, bw:199, jumpMul:1.3, move:'jump',
-    atk:'Normal', spd:'Normal', ability:'Jump higher', note:'#5' },
+    atk:'Normal', spd:'Normal', ability:'Jumps far higher than anyone', note:'#5' },
   { id:'king', name:'King Doggo', col:'#ffd166', hat:'crown', w:26, h:34, tag:'DB',
     art:'King-Doggo', bw:203, dh:54, speedMul:1.2, jumpMul:1.05,
-    atk:'High', spd:'High', ability:'Enhanced stats', note:'#6' },
+    atk:'High', spd:'High', ability:'Big damage · E swings', note:'#6' },
   { id:'zombie', name:'Zombie Doggo', col:'#8fb06a', hat:'none', w:26, h:34, tag:'DB',
     art:'Zombie-Doggo', bw:258,
-    atk:'Normal', spd:'Normal', ability:'Steal health', note:'#7' },
+    atk:'Normal', spd:'Normal', ability:'Steals health (not built yet)', note:'#7' },
   { id:'cool', name:'Cool Doggo', col:'#4cc9f0', hat:'shades', w:26, h:34, tag:'DB', wallJump:true,
     art:'Cool-Doggo', dh:43, bw:269, speedMul:1.4, move:'speed',
     accelMul:0.40, frictionMul:1.3,     // winds up over ~0.4s, still stops firmly
-    atk:'Normal', spd:'High', ability:'Speed', note:'#8' },
+    atk:'Normal', spd:'High', ability:'Fast, and the only other wall jumper', note:'#8' },
   { id:'toxic', name:'Toxic Doggo', col:'#a3f542', hat:'none', w:26, h:34, tag:'DB',
     art:'Toxic-Doggo', bw:260,
-    atk:'Normal', spd:'Normal', ability:'Poisons enemy',
+    atk:'Normal', spd:'Normal', ability:'Poison spreads (not built yet)',
     note:'#11 · his poison IS the infection' },
   { id:'plasma', name:'Plasma Doggo', col:'#8f7bf5', hat:'none', w:26, h:34, tag:'DB',
     art:'Plasma-Doggo', bw:260, move:'plasma',
-    atk:'Non-melee', spd:'Normal', ability:'Shoots plasma orbs',
+    atk:'Non-melee', spd:'Normal', ability:'Shoots orbs — aim with the mouse',
     note:'shop doggo · he became Qorvex' },
   { id:'qorvex', name:'Qorvex', col:'#5b4a8a', w:26, h:34, tag:'DB', locked:true,
     art:'Qorvex', art2:'Qorvex-glitch', bw:261,
@@ -227,19 +227,19 @@ const CAST = [
 
   { id:'billie', name:'Billie', col:'#ff7fbf', w:26, h:34, tag:'ADAM',
     art:'Billie', bw:194, move:'zoom',
-    atk:'?', spd:'?', ability:'ZOOMIES — press E. 45 seconds.', note:'yours' },
+    atk:'?', spd:'?', ability:'E for ZOOMIES — 45s, wall jump', note:'yours' },
   { id:'nano', name:'Nano Doggo', col:'#f6a623', w:26, h:34, tag:'ADAM',
     art:'nanodoggonormal', artBig:'nanodoggotall', artSmall:'nanodoggosmall',
     dh:44, move:'size',
-    atk:'?', spd:'?', ability:'Shrink ↓ · Expand ↑', note:'yours' },
+    atk:'?', spd:'?', ability:'↓ shrink to fit · ↑ grow tall', note:'yours' },
 
   { id:'plane', name:'Airplane Doggo', col:'#f5a623', w:26, h:34, tag:'ADAM',
     art:'Airplane-Doggo', bw:261, move:'glide',
-    atk:'?', spd:'?', ability:'Hold jump — thrust, then glide', note:'yours' },
+    atk:'?', spd:'?', ability:'Hold jump to fly — never climbs', note:'yours' },
   { id:'digger', name:'Miner Doggo', col:'#f4845f', w:26, h:34, tag:'ADAM',
     art:'Miner-Doggo', bw:223, dh:48, move:'dig',
     lamp:{ x:0.66, y:0.18 },          // where the helmet lamp sits in his drawing
-    atk:'?', spd:'?', ability:'Digs loose dirt · headlamp', note:'yours' },
+    atk:'?', spd:'?', ability:'Digs loose dirt · lights the dark', note:'yours' },
 ];
 // ── UNLOCK ORDER. The island hands you one doggo at a time, at the point where
 // you need them. Without this, Billie's zoomies -- roughly 8 tiles of jump plus a
@@ -688,17 +688,19 @@ fill(84, 92, 4, 12, '.');                                 // the first three til
 // the fork
 fill(60, 104, 26, 4, '.');                                // upper branch, heads left
 fill(80, 104, 4, 40, '.');                                // lower branch, heads down
-DARK.push([56, 100, 34, 12], [76, 104, 12, 44]);
 
 fill(40, 118, 22, 4, '.');                                // upper branch continues...
 fill(38, 118, 4, 26, '.');
 fill(30, 140, 12, 4, '.');                                // ...into the coin pocket
-DARK.push([36, 114, 28, 34], [26, 136, 18, 12]);
 
 fill(62, 144, 20, 4, '.');                                // lower branch swings left
 fill(58, 144, 6, 32, '.');                                // and drops toward End
 fill(40, 172, 22, 4, '.');
-DARK.push([54, 140, 32, 40], [36, 168, 28, 12]);
+
+// ONE dark region over the whole interior. The mouth and the first few tiles
+// stay lit so you can see the fork you're choosing between; past that it's dark
+// and the headlamp is the only way through.
+DARK.push([20, 104, 68, 100]);
 
 // ── 12. END. Out of the dark, almost directly below where you started.
 fill(20, 176, 24, 4, '.');
@@ -890,6 +892,7 @@ function drawDark(){
 // A pit you can't climb out of has to kill you, or it's just a trap. Respawn is
 // the LAST KENNEL you touched, so the cost is the walk back and nothing else.
 let checkX = 8*T, checkY = 0;
+let newDoggo = null, newDoggoT = 0;
 function spiked(){
   const c0=Math.floor((player.x+4)/T), c1=Math.floor((player.x+player.w-5)/T);
   const r0=Math.floor((player.y+4)/T), r1=Math.floor((player.y+player.h-3)/T);
@@ -1642,7 +1645,14 @@ function update(dt){
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
 
+  const wasX = maxX;
   maxX = Math.max(maxX, player.x / T);
+  if(maxX > wasX)
+    for(const c of CAST)
+      if(!c.locked && c.needX > wasX && c.needX <= maxX){
+        newDoggo = c; newDoggoT = 3.2; sfx('bark', 0.8); snd('coin');
+      }
+  if(newDoggoT > 0) newDoggoT -= dt;
   // hold E once the swing has played out and the sword drops level for a charge
   const armed = player.char.id === 'knight' || player.char.id === 'king';
   if(swing > 0) swing = Math.max(0, swing - dt*4);
@@ -1695,6 +1705,7 @@ function update(dt){
   if(player.onGround && !player.wasGround && fellAt > 260) snd('land', fellAt);
   // over ten tiles and the landing kills you
   if(player.onGround && !player.wasGround && !player.gliding &&
+     !inDark(player.x + player.w/2, player.y + player.h) &&
      player.y - (player.fellFrom ?? player.y) > 10*T){ respawn(); }
   touchKennel();
   player.wasGround = player.onGround;
@@ -1811,6 +1822,11 @@ function update(dt){
   const fire = ch.move==='plasma' ? ' · E to shoot'
              : ch.move==='zoom'   ? ' · E for ZOOMIES'
              : ch.move==='glide'  ? ' · hold jump, steer with the mouse' : '';
+  if(newDoggoT > 0){
+    tipEl.classList.add('hot');
+    tipEl.textContent = `${newDoggo.name.toUpperCase()} JOINED — ${newDoggo.ability}`;
+    return;
+  }
   tipEl.textContent = k ? 'KENNEL — press E to change doggo'
     : (document.body.classList.contains('touch')
         ? '← → move · ↑ look · JUMP' + (fire ? ' · E shoot' : '')
