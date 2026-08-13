@@ -545,10 +545,16 @@ const WAVE = [0,0,1,1,0,-1,-1,0,1,2,1,0,0,-1,0,1,1,0,-1,0,0,1,0,-1,-1,0,1,1,0,0]
 for(let i = 0, x = 4; x < MAP_W-4; i++, x += 8)
   fill(x, GROUND_ROW + WAVE[i % WAVE.length], 8, 8, '#');
 
-put(8, GROUND_ROW-1, 'K');                                // start kennel
 fill(16, GROUND_ROW-2, 4, 1, '#');                        // the little start ledge --
                                                           // NOT over the kennel, or it
                                                           // seals it shut
+
+// ── KENNELS. Pinned to the REAL floor height at each column, never a fixed row:
+// the floor is wavy, so a fixed row buries them wherever it dips. Thick on the
+// ground because swapping IS the game -- you should never be far from a change.
+const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
+[8, 26, 42, 58, 76, 92, 105, 120, 134, 140, 162, 174, 190, 200, 226, 240]
+  .forEach(c => put(c, kennelFloor(c) - 1, 'K'));
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
 fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
@@ -557,14 +563,12 @@ put(71, GROUND_ROW-8, 'H');                               // the strength button
 
 // ── 3. ALIEN'S LEDGE, mid-floor. 4 tall: only his jump clears it.
 fill(112, GROUND_ROW-4, 3, 4, '#');
-put(105, GROUND_ROW-1, 'K');
 
 // ── 4. THE CHASM. 9 wide — the airplane's gap. Spiked floor, so a miss costs
 // the climb back, not the run.
 fill(150, GROUND_ROW-1, 9, 9, '.');
 fill(150, GROUND_ROW+5, 9, 1, '^');
 fill(144, GROUND_ROW-8, 4, 1, '#');                       // launch ledge, high side
-put(140, GROUND_ROW-1, 'K');
 
 // ── 5. THE SPIKED BLOCK, middle-right of his map.
 fill(178, GROUND_ROW-3, 8, 3, '#');
