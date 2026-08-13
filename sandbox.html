@@ -1609,14 +1609,26 @@ function update(dt){
       : REST + Math.sin((1 - swing) * Math.PI) * 2.4;
     swordArc.unshift(ang);
     if(swordArc.length > 6) swordArc.pop();
-    // charging: sword out, moving with intent, and it clears cracked crates
+    // Charging: sword out, running at something. It clears cracked crates, and it
+    // SHOVES anything else forward -- or forward and UP if the level move is
+    // blocked, which is what frees a block stranded against a step. Reaches two
+    // crates high, so a stack goes as one rather than the top one being left
+    // hanging.
     if(couch > 0.7 && Math.abs(player.vx) > 60){
       const dir = player.face > 0 ? 1 : -1;
       const cx = Math.floor((player.x + player.w/2)/T);
-      for(let r = Math.floor(player.y/T); r <= Math.floor((player.y+player.h-1)/T); r++){
+      const foot = Math.floor((player.y + player.h - 1)/T);
+      for(let r = foot; r >= foot - 1; r--){          // two crates of height
         const k = crateAt(cx + dir, r);
-        if(k && (k.kind === 'crackedCrate' || k.kind === 'crackedBlock')){
-          CRATES.splice(CRATES.indexOf(k), 1); snd('pop');
+        if(!k) continue;
+        if(k.kind === 'crackedCrate' || k.kind === 'crackedBlock'){
+          CRATES.splice(CRATES.indexOf(k), 1); snd('pop'); continue;
+        }
+        if(k.pushT > 0) continue;
+        if(crateFits(k, k.c + dir, k.r)){
+          k.c += dir; k.ox -= dir*T; k.pushT = PUSH_GAP;
+        } else if(crateFits(k, k.c + dir, k.r - 1)){
+          k.c += dir; k.r -= 1; k.ox -= dir*T; k.oy += T; k.pushT = PUSH_GAP;
         }
       }
     }
