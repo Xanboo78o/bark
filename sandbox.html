@@ -545,9 +545,10 @@ const WAVE = [0,0,1,1,0,-1,-1,0,1,2,1,0,0,-1,0,1,1,0,-1,0,0,1,0,-1,-1,0,1,1,0,0]
 for(let i = 0, x = 4; x < MAP_W-4; i++, x += 8)
   fill(x, GROUND_ROW + WAVE[i % WAVE.length], 8, 8, '#');
 
-fill(16, GROUND_ROW-2, 4, 1, '#');                        // the little start ledge --
-                                                          // NOT over the kennel, or it
-                                                          // seals it shut
+fill(16, GROUND_ROW-1, 4, 1, '#');                        // the little start ledge, flush
+                                                          // with the floor -- a tile
+                                                          // higher and stepping off it
+                                                          // drops you 3 into the dip
 
 // ── KENNELS. Pinned to the REAL floor height at each column, never a fixed row:
 // the floor is wavy, so a fixed row buries them wherever it dips. Thick on the
@@ -555,7 +556,10 @@ fill(16, GROUND_ROW-2, 4, 1, '#');                        // the little start le
 // One before each gate and nowhere else. A kennel is a decision point -- scatter
 // them and they stop meaning "you need someone else for this".
 const kennelFloor = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
-[8, 60, 104, 142, 172, 222].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
+[8, 40, 64, 100, 138, 168, 218].forEach(c => put(c, kennelFloor(c) - 1, 'K'));
+// x=40 is the one that matters: column 46 is a 4-tall Alien pillar, and the
+// nearest kennel used to be back at the start, so you met the gate with no way
+// to answer it.
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
 fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
@@ -846,7 +850,7 @@ function addCrate(c, r, kind, tw, th){
 }
 function crateAt(c, r, skip){
   for(const k of CRATES){
-    if(k === skip) continue;
+    if(k === skip || k === carried) continue;    // what you're holding isn't terrain
     if(c >= k.c && c < k.c + k.tw && r >= k.r && r < k.r + k.th) return k;
   }
   return null;
@@ -870,7 +874,13 @@ const canShove = (ch, k) => k.kind !== 'heavy' || ch.id === 'knight' || ch.id ==
 
 function pushCrates(dt){
   const dir = R() ? 1 : L() ? -1 : 0;
+  if(carried){                                   // ride above his head
+    carried.c = Math.floor((player.x + player.w/2)/T);
+    carried.r = Math.floor(player.y/T) - 1;
+    carried.ox = carried.oy = 0;
+  }
   for(const k of CRATES){
+    if(k === carried) continue;
     k.pushT = Math.max(0, k.pushT - dt);
     k.ox += (0 - k.ox) * Math.min(1, dt / CRATE_SLIDE);
     k.oy += (0 - k.oy) * Math.min(1, dt / CRATE_SLIDE);
@@ -907,6 +917,29 @@ onFloor(30, 'crate');
 onFloor(38, 'crate');
 onFloor(64, 'heavy');               // Knight/King only, by his button
 onFloor(90, 'crackedCrate');
+
+let carried = null;
+function toggleCarry(){
+  if(carried){                                   // set it down in front of you
+    const dir = player.face > 0 ? 1 : -1;
+    const c = Math.floor((player.x + player.w/2)/T) + dir;
+    const r = Math.floor((player.y + player.h - 2)/T);
+    for(let dy = 0; dy <= 2; dy++)
+      if(crateFits(carried, c, r-dy)){
+        carried.c = c; carried.r = r-dy; carried.ox = carried.oy = 0;
+        carried = null; snd('pop'); return true;
+      }
+    return false;
+  }
+  if(player.char.id !== 'barkmc') return false;
+  const dir = player.face > 0 ? 1 : -1;
+  const c = Math.floor((player.x + player.w/2)/T) + dir;
+  for(let r = Math.floor(player.y/T); r <= Math.floor((player.y+player.h)/T); r++){
+    const k = crateAt(c, r);
+    if(k && k.kind !== 'heavy'){ carried = k; snd('pop'); return true; }
+  }
+  return false;
+}
 
 function drawCrates(){
   for(const k of CRATES){
@@ -1266,6 +1299,7 @@ document.querySelectorAll('#pad button').forEach(b => {
 function action(){
   if(rosterOpen) return;
   if(nearKennel()) { openRoster(); return; }
+  if(toggleCarry()) return;              // E doubles as pick up / put down
   if(player.char.move === 'zoom'){
     player.zoom = ZOOM_TIME;
     sfx('bark', 0.7); snd('zoomies');
