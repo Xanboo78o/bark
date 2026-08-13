@@ -521,74 +521,97 @@ let biome = 'grass';
 // ───────────────────────────────────────────── level
 // '.' air  '#' solid  'd' loose dirt  'K' kennel  'R' robo door
 // 'B' plasma barrier  'S' plasma target  'G' goal
-const MAP_W = 126, MAP_H = 21;
+const MAP_W = 126, MAP_H = 126;
+const GROUND_ROW = 112;                  // bedrock top; everything above is open sky
 const grid = Array.from({length:MAP_H}, () => Array(MAP_W).fill('.'));
 const fill = (x,y,w,h,ch) => { for(let r=y;r<y+h;r++) for(let c=x;c<x+w;c++)
   if(r>=0&&r<MAP_H&&c>=0&&c<MAP_W) grid[r][c]=ch; };
 const put = (x,y,ch) => fill(x,y,1,1,ch);
 
-fill(0,15,MAP_W,6,'#');          // ground slab, walking surface = row 15
+fill(0, GROUND_ROW, MAP_W, MAP_H-GROUND_ROW, '#');   // bedrock
+fill(0,0,2,MAP_H,'#'); fill(MAP_W-2,0,2,MAP_H,'#');  // outer walls
 
-// A — start
-put(7,14,'K');
+// ── THE ROUTE. Hand-placed waypoints that deliberately wander — right, up, up,
+// left, down, back up, over, down again — so the level tangles through the whole
+// square instead of laddering up it. Steps BETWEEN waypoints are fitted
+// automatically at jumpable spacing, which is what keeps a wandering route
+// provably completable.
+//   [x, y, tag?]  tag names a station that owns this waypoint.
+const ROUTE = [
+  [  8, 110], [ 22, 110, 'digger'], [ 36, 110], [ 48, 104, 'alien'],
+  [ 60, 100], [ 74, 100, 'plane'],  [ 90,  96], [104,  90, 'cool'],
+  [114,  82], [104,  74, 'knight'], [ 92,  70], [ 78,  72],
+  [ 64,  78, 'tall'],  [ 50,  84],  [ 38,  78], [ 26,  70, 'billie'],
+  [ 20,  58], [ 32,  52, 'barkmc'], [ 46,  48], [ 60,  42, 'plasma'],
+  [ 74,  46], [ 88,  40, 'cowboy'], [102,  34], [112,  26],
+  [ 98,  22, 'toxic'], [ 84,  26], [ 70,  20, 'zombie'], [ 56,  16],
+  [ 42,  22, 'king'],  [ 28,  16],  [ 16,  10, 'dalmatian'], [ 30,   6],
+  [ 46,   8], [ 60,   6],
+];
 
-// B — a gap only a glide crosses (fall in and you walk the stairs back; that's the point)
-fill(14,15,9,5,'.');
-fill(14,16,1,5,'#'); fill(15,17,1,4,'#'); fill(16,18,1,3,'#'); fill(17,19,1,2,'#');
+// step from waypoint to waypoint in jumpable increments: never more than 3 tiles
+// across or 2 rows up at a time
+function link(a, b){
+  const [ax, ay] = a, [bx, by] = b;
+  const n = Math.max(Math.abs(bx-ax) / 4, Math.abs(by-ay) / 2, 1) | 0;
+  for(let i = 0; i <= n; i++){
+    const x = Math.round(ax + (bx-ax) * i/n);
+    const y = Math.round(ay + (by-ay) * i/n);
+    fill(x-1, y, 3, 2, '#');
+  }
+}
 
-// C — dig under the wall
-put(26,14,'K');
-fill(30,5,2,10,'#');
-fill(27,15,2,1,'d');
-fill(27,16,9,2,'.');
-fill(34,17,1,1,'#'); fill(35,16,1,2,'#');
-fill(33,15,3,1,'.');
+// ── STATIONS. Each one carves its own gate over the route, so the fitted steps
+// can't accidentally provide a way round. Numbers are the ones already proven
+// flat: a glide gap needs ~9 (he always lands lower than he launched), Alien
+// tops out at 4.7 tiles so a 6-wall is Zoomies-only, Cool needs a runway then 5.
+const GATES = {
+  digger:  (x,y) => { fill(x, y-10, 2, 10, '#'); fill(x, y-2, 2, 2, 'd'); },
+  alien:   (x,y) => { fill(x-4, y-4, 4, 4, '#'); },
+  plane:   (x,y) => { fill(x-4, y, 9, GROUND_ROW-y, '.');
+                      fill(x-4, GROUND_ROW-1, 9, 1, '^');
+                      fill(x-7, y-7, 3, 1, '#'); },
+  cool:    (x,y) => { fill(x-2, y, 5, GROUND_ROW-y, '.');
+                      fill(x-2, GROUND_ROW-1, 5, 1, '^'); },
+  knight:  (x,y) => { fill(x, y-6, 2, 6, '#'); put(x+1, y-1, 'H'); },
+  tall:    (x,y) => { fill(x-3, y, 7, GROUND_ROW-y, '.');
+                      fill(x-3, GROUND_ROW-1, 7, 1, '^');
+                      fill(x, y+9, 2, 1, '#'); },
+  billie:  (x,y) => { fill(x, y-6, 2, 6, '#'); },
+  barkmc:  (x,y) => { fill(x, y-9, 1, 6, '#'); fill(x, y-3, 1, 3, 'R'); },
+  plasma:  (x,y) => { fill(x, y-2, 2, 2, '#'); fill(x+7, y-6, 1, 4, '#');
+                      fill(x+7, y-2, 1, 2, 'B'); put(x+12, y-3, 'S'); },
+  // the four combat rooms are shaped but not armed — they need enemies first
+  cowboy:  (x,y) => { fill(x-1, y-5, 1, 5, '#'); fill(x+9, y-5, 1, 5, '#'); },
+  toxic:   (x,y) => { fill(x-1, y-6, 1, 6, '#'); fill(x+10, y-6, 1, 6, '#'); },
+  zombie:  (x,y) => { fill(x-1, y-4, 13, 1, '#'); },
+  king:    (x,y) => { fill(x-1, y-6, 1, 6, '#'); fill(x+8, y-6, 1, 6, '#'); },
+  dalmatian:(x,y)=> { fill(x-1, y-5, 1, 5, '#'); fill(x+8, y-5, 1, 5, '#'); },
+};
 
-// D — a six-tile wall. Alien's big jump tops out at 4.7 tiles; only Zoomies clears it.
-put(40,14,'K');
-fill(45,9,9,6,'#');
+for(let i = 0; i < ROUTE.length - 1; i++) link(ROUTE[i], ROUTE[i+1]);
+ROUTE.forEach(([x,y,tag]) => { if(tag && GATES[tag]) GATES[tag](x, y); });
 
-// E — robo door
-put(57,14,'K');
-fill(62,0,1,12,'#'); fill(62,12,1,3,'R');
+// a kennel just before each gate, so you can always be the wrong doggo and fix it
+ROUTE.forEach(([x,y,tag]) => { if(tag) put(x-3, y-1, 'K'); });
+put(ROUTE[0][0], ROUTE[0][1]-1, 'K');
+put(ROUTE[ROUTE.length-1][0], ROUTE[ROUTE.length-1][1]-1, 'G');
 
-// F — another glide gap
-put(66,14,'K');
-fill(72,15,9,5,'.');
-fill(72,16,1,5,'#'); fill(73,17,1,4,'#'); fill(74,18,1,3,'#'); fill(75,19,1,2,'#');
-
-// G — five tiles: too far for a normal run-up, fine if you're fast
-put(84,14,'K');
-fill(88,15,5,5,'.');
-fill(88,16,1,5,'#'); fill(89,17,1,4,'#'); fill(90,18,1,3,'#');
-
-// H — a four-tile wall. no ledge, no ramp. you either jump it or you don't
-put(97,14,'K');
-fill(102,11,2,4,'#');
-
-// I — the window. stand on the ledge, put an orb through it, the barrier drops
-put(105,14,'K');
-fill(107,13,2,2,'#');            // firing ledge
-fill(112,8,1,4,'#');             // wall above the window
-fill(112,13,1,2,'B');            // barrier below it
-put(116,12,'S');                 // target
-
-// floating platforms — somewhere for Adam's blob pieces to live, and a high route
-fill(35,12,3,1,'#'); fill(67,11,3,1,'#'); fill(94,12,3,1,'#');
-
-put(122,14,'G');
-fill(0,0,1,MAP_H,'#'); fill(MAP_W-1,0,1,MAP_H,'#');
+// ── SPIKES. Touch one and you're back at the last kennel. Laid along runs you
+// have to cross anyway, so they're a reason to pick the right doggo rather than
+// scenery. '^' is not solid — it kills.
+[[30,109],[52,103],[80,99],[108,89],[96,69],[70,77],[42,77],[24,57],
+ [50,47],[78,45],[106,33],[86,25],[58,15],[32,15],[44,7]]
+  .forEach(([x,y]) => fill(x, y, 3, 1, '^'));
 
 // Hand-placed, one at a time, each somewhere a particular doggo can reach and the
 // others can't — the pit floors are the consolation prize for picking wrong.
 // [col, row, tier] — silver where anyone can reach, green behind an ability, red on
 // top of the two walls almost nobody gets over. Worth 20 all told.
-const COINS = [
-  [11,13,0], [19,19,0], [78,19,0], [120,13,0],
-  [31,17,1], [59,10,1], [68,10,1],
-  [49,8,2],  [102,10,2],
-].map(([c,r,tier]) => ({ x:c*T + T/2, y:r*T + T/2, got:false, tier,
-                         ph:(c*7 + r*3) % 12 }));
+const COINS = ROUTE.filter((_,i) => i % 3 === 1)
+  .map(([c,r],i) => ({ x:c*T + T/2, y:(r-2)*T + T/2, got:false,
+                       tier: i % 5 === 0 ? 2 : i % 2 ? 1 : 0,
+                       ph:(c*7 + r*3) % 12 }));
 const COIN_TOTAL = COINS.reduce((a,c) => a + COIN_TIERS[c.tier].value, 0);
 let coinsGot = 0, coinValue = 0;
 const coinLabel = () => `${coinsGot}/${COINS.length} found · ${coinValue} coins`;
@@ -626,7 +649,7 @@ function mergeRects(pred){
 }
 const ROCK = mergeRects((c,r) => grid[r][c]==='#');
 const DIRT = mergeRects((c,r) => grid[r][c]==='d');
-const SURFACE = 15*T;            // everything below this line is underground
+const SURFACE = GROUND_ROW*T;            // everything below this line is underground
 
 // anything standing PROUD of the ground line is a stone wall; anything sitting at
 // the ground line is earth with a grass cap; anything below it is buried earth.
@@ -644,7 +667,7 @@ ROCK.forEach(r => {
 
 // ───────────────────────────────────────────── player
 const player = {
-  char: byId('barkmc'), x: 3*T, y: 15*T-36, w:28, h:36,
+  char: byId('barkmc'), x: 8*T, y: (GROUND_ROW-1)*T-36, w:28, h:36,
   vx:0, vy:0, onGround:false, face:1, phase:0, coyote:0, buffer:0,
   gliding:false, digging:false, peri:0,
   zoom:0, wall:0, wallCoyote:0, trail:[],
@@ -661,6 +684,7 @@ function solidFor(ch, c, r){
   if(t==='d') return ch.move !== 'dig';
   if(t==='B') return !plasmaOpen;
   if(t==='R'){ const d = doorAt(c,r); return !(d && d.open); }
+  if(t==='^') return false;              // spikes kill, they don't block
   return !!crateAt(c, r);          // crates are solid to everything, including each other
 }
 const isDirt = (c,r) => c>=0&&c<MAP_W&&r>=0&&r<MAP_H && grid[r][c]==='d';
@@ -693,6 +717,23 @@ function blocked(ch,x,y,w,h){
   const r0=Math.floor(y/T), r1=Math.floor((y+h-1)/T);
   for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++) if(solidFor(ch,c,r)) return true;
   return false;
+}
+
+// ───────────────────────────────────────────── spikes
+// Touching one puts you back at the last kennel you passed. No health, no
+// knockback — it's a puzzle hazard, not combat, so the punishment is the walk.
+let checkX = 8*T, checkY = (GROUND_ROW-1)*T - 36;
+function spiked(){
+  const c0 = Math.floor((player.x+4)/T), c1 = Math.floor((player.x+player.w-5)/T);
+  const r0 = Math.floor((player.y+4)/T), r1 = Math.floor((player.y+player.h-3)/T);
+  for(let r=r0;r<=r1;r++) for(let c=c0;c<=c1;c++)
+    if(c>=0&&c<MAP_W&&r>=0&&r<MAP_H&&grid[r][c]==='^') return true;
+  return false;
+}
+function respawn(){
+  player.x = checkX; player.y = checkY;
+  player.vx = player.vy = 0; player.zoom = 0; player.flightT = 0;
+  snd('pop');
 }
 
 // ───────────────────────────────────────────── crates
@@ -1231,7 +1272,7 @@ function reset(){
   coinsGot = 0; coinValue = 0; hudCoins.textContent = coinLabel();
   player.x = 3*T; player.vx = 0; player.vy = 0;
   becomeDoggo(byId('barkmc'));
-  player.y = 15*T - player.h;
+  player.y = (GROUND_ROW-1)*T - player.h;
   bannerEl.classList.remove('on'); cleared = false;
 }
 
@@ -1325,6 +1366,8 @@ function update(dt){
   player.onGround = false;
   player.x += player.vx*dt; collide('x');
   player.y += player.vy*dt; collide('y');
+
+  if(spiked()) respawn();
 
   // footsteps pace themselves off the walk cycle, so they speed up when he does
   if(player.onGround && Math.abs(player.vx) > 25 && !player.digging){
