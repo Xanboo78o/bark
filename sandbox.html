@@ -963,7 +963,8 @@ const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
 onFloor(30, 'crate');
 onFloor(38, 'crate');
 onFloor(64, 'heavy');               // Knight/King only, by his button
-onFloor(90, 'crackedCrate');
+[[90,1],[90,2],[91,1],[91,2]].forEach(([c,d]) =>
+  addCrate(c, kennelFloor(c) - d, 'crackedCrate'));
 
 // 3 breakable crates, sitting in the divot
 [69, 70, 71, 72].forEach(c => addCrate(c, kennelFloor(c), 'crackedCrate'));
@@ -988,7 +989,7 @@ function knightSwing(){
   for(let d = 1; d <= 2; d++) for(let r = r0 - 1; r <= r1 + 1; r++){
     const k = crateAt(cx + dir*d, r);
     if(k && (k.kind === 'crackedCrate' || k.kind === 'crackedBlock')){
-      CRATES.splice(CRATES.indexOf(k), 1); hit = true; snd('pop');
+      CRATES.splice(CRATES.indexOf(k), 1); hit = true; snd('smash');
     }
   }
 
@@ -1166,6 +1167,13 @@ function swoop(t, f0, f1, dur, peak, type, dest){
 const rnd = (a,b) => a + Math.random()*(b-a);
 
 const SND = {
+  smash(){ const t = actx.currentTime;
+    hiss(t, 0.055, 3100, 0.9, 0.34);                       // the crack
+    for(let i = 0; i < 4; i++)                             // splinters
+      hiss(t + 0.014 + i*0.027 + Math.random()*0.012,
+           0.05, rnd(850, 1900), 2.4, 0.14 - i*0.028);
+    swoop(t, 190, 58, 0.20, 0.17, 'triangle');             // it falls in
+    hiss(t + 0.02, 0.17, 420, 0.7, 0.11, 'lowpass'); },
   step(){ const t = actx.currentTime;
     hiss(t, 0.085, rnd(900,1500), 1.1, 0.10);
     swoop(t, rnd(150,190), 70, 0.07, 0.045); },
@@ -1622,7 +1630,7 @@ function update(dt){
         const k = crateAt(cx + dir, r);
         if(!k) continue;
         if(k.kind === 'crackedCrate' || k.kind === 'crackedBlock'){
-          CRATES.splice(CRATES.indexOf(k), 1); snd('pop'); continue;
+          CRATES.splice(CRATES.indexOf(k), 1); snd('smash'); continue;
         }
         if(k.pushT > 0) continue;
         if(crateFits(k, k.c + dir, k.r)){
