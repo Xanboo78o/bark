@@ -102,24 +102,66 @@ def simplify(pts, eps):
 
 
 def raw_paths(src):
+    """Walk the tree so paths INHERIT fill/stroke from their groups. Scratch hangs
+    the stroke colour on the enclosing <g> and leaves the paths bare — reading only
+    a path's own attributes is what made his crate's X invisible."""
     root = ET.parse(src).getroot()
     gr = grads(root)
-    tx, ty = outer_transform(root)
     out = []
-    for p in root.iter(NS + 'path'):
-        fill = p.get('fill') or 'none'
-        m = re.match(r'url\(#(.+)\)', fill)
-        top, bot = gr.get(m.group(1), ('#888888', '#888888')) if m else (fill, fill)
-        eps = EPS if fill != 'none' else EPS * 3
-        pts = simplify(flatten(p.get('d')), eps)
-        if len(pts) < 3:
-            continue
-        pts = [(x + tx, y + ty) for x, y in pts]
-        xs = [q[0] for q in pts]; ys = [q[1] for q in pts]
-        out.append({'pts': pts, 'fill': top, 'fillLow': bot,
-                    'edge': p.get('stroke') or 'none',
-                    'box': (min(xs), min(ys), max(xs), max(ys))})
+
+    def walk(node, inherit, tx, ty):
+        attrs = dict(inherit)
+        for k in ('fill', 'stroke', 'stroke-width'):
+            if node.get(k) is not None:
+                attrs[k] = node.get(k)
+        m = re.match(r'translate\(([-\d.]+),([-\d.]+)\)', node.get('transform') or '')
+        if m:
+            tx, ty = tx + float(m.group(1)), ty + float(m.group(2))
+
+        if node.tag == NS + 'path' and node.get('d'):
+            fill = attrs.get('fill', 'none')
+            g = re.match(r'url\(#(.+)\)', fill)
+            top, bot = gr.get(g.group(1), ('#888888', '#888888')) if g else (fill, fill)
+            pts = simplify(flatten(node.get('d')),
+                           EPS if fill != 'none' else EPS * 3)
+            # 2 points is a LINE, not junk — the X across his crate is two of them
+            if len(pts) >= 2:
+                pts = [(x + tx, y + ty) for x, y in pts]
+                xs = [q[0] for q in pts]; ys = [q[1] for q in pts]
+                out.append({'pts': pts, 'fill': top, 'fillLow': bot,
+                            'edge': attrs.get('stroke', 'none'),
+                            'box': (min(xs), min(ys), max(xs), max(ys))})
+        for child in node:
+            walk(child, attrs, tx, ty)
+
+    walk(root, {}, 0.0, 0.0)
     return out
+
+
+def convert_prop(src):
+    """A prop is ONE object drawn as several paths — a crate plus its planks, a
+    target plus its rings. Nothing here is interchangeable, so everything keeps
+    its place relative to everything else and the whole lot normalises to the
+    union box. (Treating a prop like a terrain sheet is what silently dropped
+    the detail off his crate and left a bare square.)"""
+    paths = raw_paths(src)
+    if not paths:
+        return []
+    x0 = min(p['box'][0] for p in paths); y0 = min(p['box'][1] for p in paths)
+    x1 = max(p['box'][2] for p in paths); y1 = max(p['box'][3] for p in paths)
+    box = (x0, y0, x1, y1)
+    sx, sy = (x1-x0) or 1, (y1-y0) or 1
+    norm = lambda pts: [[round((q[0]-x0)/sx, 4), round((q[1]-y0)/sy, 4)] for q in pts]
+
+    big = max(paths, key=lambda p: (p['box'][2]-p['box'][0]) * (p['box'][3]-p['box'][1]))
+    piece = {'w': round(sx, 2), 'h': round(sy, 2), 'fill': big['fill'],
+             'fillLow': big['fillLow'], 'edge': big['edge'],
+             'pts': norm(big['pts']),
+             # kept in the order he drew them, so what he layered on top stays on top
+             'on': [{'fill': p['fill'], 'fillLow': p['fillLow'], 'edge': p['edge'],
+                     'pts': norm(p['pts'])}
+                    for p in paths if p is not big]}
+    return [piece]
 
 
 def convert(src):
@@ -152,6 +194,9 @@ def convert(src):
             x0, y0, x1, y1 = p['box']
             if x1-x0 < 8 or y1-y0 < 8:
                 p['role'] = 'decor'
+    for p in paths:
+        if p['role'] == 'body' and len(p['pts']) < 3:
+            p['role'] = 'mark'
     bodies = [p for p in paths if p['role'] == 'body']
 
     def norm(pts, box):
@@ -192,13 +237,14 @@ def convert(src):
             return (cx*cx + cy*cy) ** .5              # else nearest centre
         host = min(bodies, key=score)
         e = emit(d, host['box'], coarse=True)
-        if len(e['pts']) >= 3:                 # thinning can leave a stub behind
+        if len(e['pts']) >= 2:                 # 2 points is a line, still worth drawing
             out[bodies.index(host)]['on'].append(e)
     return out
 
 
 if __name__ == '__main__':
-    out = convert(sys.argv[1])
+    args = [a for a in sys.argv[1:] if a != '--prop']
+    out = convert_prop(args[0]) if '--prop' in sys.argv else convert(args[0])
     out.sort(key=lambda p: -p['w'] * p['h'])
     print(json.dumps(out, indent=None))
     for p in out:
