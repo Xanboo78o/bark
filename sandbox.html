@@ -1580,13 +1580,19 @@ function update(dt){
   // hold E once the swing has played out and the sword drops level for a charge
   const armed = player.char.id === 'knight' || player.char.id === 'king';
   if(swing > 0) swing = Math.max(0, swing - dt*4);
-  const holding = armed && !rosterOpen && (keys.KeyE || held.act) && swing < 0.35;
-  couch += (holding ? 1 : 0 - couch) * Math.min(1, dt*9);
+  // no swing gate -- holding E has to couch it even mid-swing, or a held press
+  // just swings once and never levels out, which is why charging did nothing
+  const holding = armed && !rosterOpen && keys.KeyE;
+  couch += ((holding ? 1 : 0) - couch) * Math.min(1, dt*9);
   couch = Math.max(0, Math.min(1, couch));
   if(armed){
-    // rest -20deg, mid-swing sweeps forward, couched sits level at 90
-    const ang = couch > 0.02 ? (-0.35 + couch*1.92)
-                             : (-0.35 + (1-swing)*(1-swing)*2.1);
+    // REST is where his old drawing held it: up behind the shoulder, blade above
+    // his head. A swing sweeps forward and BACK to rest (sine, not a ramp, or it
+    // finishes pointing at the floor and stays there). Couched levels it at 90.
+    const REST = -0.18;
+    const ang = couch > 0.02
+      ? REST + couch * (Math.PI/2 - REST)
+      : REST + Math.sin((1 - swing) * Math.PI) * 2.4;
     swordArc.unshift(ang);
     if(swordArc.length > 6) swordArc.pop();
     // charging: sword out, moving with intent, and it clears cracked crates
@@ -1803,9 +1809,10 @@ function drawDog(g,x,y,ch,face,phase,st){
     // what makes a swing read as motion rather than a jump-cut.
     const sw = ch.sword && IMG[ch.sword];
     if(sw && sw.complete && sw.naturalWidth && st.arc && st.arc.length){
-      const blade = dh * 0.95;
+      const blade = dh * 1.15;                      // tip clears his head, as drawn
       const bw = sw.naturalWidth * (blade / sw.naturalHeight);
-      const px = dw*0.14, py = -dh*0.46 + bob;      // roughly his front shoulder
+      const px = -dw*0.20, py = -dh*0.50 + bob;     // behind the shoulder, where his
+                                                    // old drawing had it
       const put = (ang, alpha) => {
         g.save(); g.globalAlpha = alpha;
         g.translate(px, py); g.rotate(ang);
