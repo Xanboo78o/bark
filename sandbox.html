@@ -546,7 +546,9 @@ for(let i = 0, x = 4; x < MAP_W-4; i++, x += 8)
   fill(x, GROUND_ROW + WAVE[i % WAVE.length], 8, 8, '#');
 
 put(8, GROUND_ROW-1, 'K');                                // start kennel
-fill(6, GROUND_ROW-2, 4, 1, '#');                         // the little start ledge
+fill(16, GROUND_ROW-2, 4, 1, '#');                        // the little start ledge --
+                                                          // NOT over the kennel, or it
+                                                          // seals it shut
 
 // ── 2. CRATES + THE HEAVY BLOCK. First thing you meet: the shove verb.
 fill(46, GROUND_ROW-5, 1, 5, '#');                        // a step you can't make
@@ -845,10 +847,13 @@ function pushCrates(dt){
 }
 
 // first crates, out on the opening flat so the verb teaches itself
-addCrate(8,  13, 'crate');
-addCrate(14, 13, 'heavy');          // Knight/King only
-addCrate(20, 13, 'crackedCrate');
-addCrate(26,  4, 'crate');          // starts in the air — shows they fall and stack
+// sit each crate ON the wavy floor at its own column, rather than at a fixed row
+const floorAt = c => GROUND_ROW + WAVE[(((c-4)/8)|0) % WAVE.length];
+const onFloor = (c, kind) => addCrate(c, floorAt(c) - 1, kind);
+onFloor(30, 'crate');
+onFloor(38, 'crate');
+onFloor(64, 'heavy');               // Knight/King only, by his button
+onFloor(90, 'crackedCrate');
 
 function drawCrates(){
   for(const k of CRATES){
