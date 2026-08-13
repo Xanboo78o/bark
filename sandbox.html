@@ -864,28 +864,46 @@ function inDark(px, py){
     if(px >= x*T && px < (x+w)*T && py >= y*T && py < (y+h)*T) return true;
   return false;
 }
+// The darkness has to be its own LAYER. Punching the cone straight onto the game
+// canvas with destination-out erases everything underneath it -- terrain, coins,
+// the player -- so the lamp cut a transparent hole instead of revealing the
+// tunnel. Build the black on an offscreen canvas, erase the cone from THAT, then
+// composite the result over the scene.
+let darkCv = null, darkCx = null;
 function drawDark(){
-  const lit = player.char.move === 'dig';
   let any = false;
   for(const [x,y,w,h] of DARK){
     const sx = x*T-ox, sy = y*T-oy;
-    if(sx > VIEW_W || sy > VIEW_H || sx+w*T < 0 || sy+h*T < 0) continue;
-    any = true;
-    ctx.fillStyle = '#000'; ctx.fillRect(sx, sy, w*T, h*T);
+    if(sx <= VIEW_W && sy <= VIEW_H && sx + w*T >= 0 && sy + h*T >= 0){ any = true; break; }
   }
-  if(!any || !lit) return;
-  // punch the headlamp cone back out of the black
-  const hx = player.x + player.w/2 - ox, hy = player.y + 10 - oy;
-  const g = ctx.createRadialGradient(hx, hy, 8, hx, hy, 190);
-  g.addColorStop(0, 'rgba(255,240,200,.95)');
-  g.addColorStop(0.55, 'rgba(255,235,180,.35)');
-  g.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.save(); ctx.globalCompositeOperation = 'destination-out';
-  ctx.fillStyle = g;
-  ctx.beginPath(); ctx.moveTo(hx, hy);
-  const a = player.face > 0 ? 0 : Math.PI;
-  ctx.arc(hx, hy, 190, a - 0.62, a + 0.62); ctx.closePath(); ctx.fill();
-  ctx.restore();
+  if(!any) return;
+
+  if(!darkCv){
+    darkCv = document.createElement('canvas');
+    darkCv.width = VIEW_W; darkCv.height = VIEW_H;
+    darkCx = darkCv.getContext('2d');
+  }
+  const g = darkCx;
+  g.setTransform(1,0,0,1,0,0);
+  g.clearRect(0, 0, VIEW_W, VIEW_H);
+  g.fillStyle = '#000';
+  for(const [x,y,w,h] of DARK) g.fillRect(x*T-ox, y*T-oy, w*T, h*T);
+
+  if(player.char.move === 'dig'){
+    const hx = player.x + player.w/2 - ox, hy = player.y + player.h*0.35 - oy;
+    const grad = g.createRadialGradient(hx, hy, 12, hx, hy, 210);
+    grad.addColorStop(0,   'rgba(0,0,0,1)');      // fully erased = fully lit
+    grad.addColorStop(0.6, 'rgba(0,0,0,0.85)');
+    grad.addColorStop(1,   'rgba(0,0,0,0)');
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = grad;
+    const a = player.face > 0 ? 0 : Math.PI;
+    g.beginPath(); g.moveTo(hx, hy);
+    g.arc(hx, hy, 210, a - 0.7, a + 0.7); g.closePath(); g.fill();
+    g.beginPath(); g.arc(hx, hy, 38, 0, 7); g.fill();   // a pool at his feet, so
+    g.globalCompositeOperation = 'source-over';         // he isn't stood in pitch black
+  }
+  ctx.drawImage(darkCv, 0, 0);
 }
 
 // ───────────────────────────────────────────── spikes
