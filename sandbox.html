@@ -1389,6 +1389,7 @@ addEventListener('pointermove', e => {
 });
 addEventListener('keydown', e => {
   startMusic();
+  if(e.code==='KeyP' && !rosterOpen){ respawn(); return; }   // back to the last kennel
   if(e.code==='KeyM'){ toggleMusic(); return; }
   if(keys[e.code]) return; keys[e.code] = true;
   if(rosterOpen) rosterKey(e);
@@ -1803,7 +1804,7 @@ function update(dt){
   tipEl.textContent = k ? 'KENNEL — press E to change doggo'
     : (document.body.classList.contains('touch')
         ? '← → move · ↑ look · JUMP' + (fire ? ' · E shoot' : '')
-        : '← → / A D move · Space jump · ↑ look · E at a kennel' + fire + ' · B biome · M music · R restart');
+        : '← → / A D move · Space jump · ↑ look · E at a kennel' + fire + ' · P checkpoint · B biome · M music');
 }
 
 // ───────────────────────────────────────────── drawing
